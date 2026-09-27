@@ -24,9 +24,10 @@ export function ListingChip({ cardId, kind, existing }: Props) {
   const [price, setPrice] = useState(
     existing?.priceCents ? String(existing.priceCents / 100).replace(".", ",") : "",
   );
-  // Default accept-trades to true unless the existing listing is CASH_ONLY.
+  // Defaults for a new listing: HAVE assumes you'd trade, WANT assumes you'd rather buy.
+  // For existing listings, mirror whatever offerType is stored.
   const [acceptTrades, setAcceptTrades] = useState(
-    existing ? existing.offerType !== "CASH_ONLY" : true,
+    existing ? existing.offerType !== "CASH_ONLY" : kind === "HAVE",
   );
   const [error, setError] = useState<string | null>(null);
 
