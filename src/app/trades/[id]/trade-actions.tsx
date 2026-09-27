@@ -16,6 +16,7 @@ type Props = {
   iAmRequester: boolean;
   iGiveCount: number;
   iReceiveCount: number;
+  cashCents: number | null;
   myConfirmed: boolean;
   otherConfirmed: boolean;
   otherHandle: string | null;
@@ -27,6 +28,7 @@ export function TradeActions({
   iAmRequester,
   iGiveCount,
   iReceiveCount,
+  cashCents,
   myConfirmed,
   otherConfirmed,
   otherHandle,
@@ -51,7 +53,12 @@ export function TradeActions({
   let banner: React.ReactNode = null;
 
   if (status === "OPEN" && iAmRequester) {
-    const canSend = iGiveCount > 0 && iReceiveCount > 0;
+    // Match sendTrade's server-side validation: each side must contribute
+    // either cards or cash.
+    const cash = cashCents ?? 0;
+    const requesterProvides = iGiveCount > 0 || cash < 0;
+    const responderProvides = iReceiveCount > 0 || cash > 0;
+    const canSend = requesterProvides && responderProvides;
     buttons.push(
       <button
         key="send"

@@ -179,6 +179,7 @@ export default async function TradePage({
             iAmRequester={iAmRequester}
             iGiveCount={iGive.length}
             iReceiveCount={iReceive.length}
+            cashCents={trade.cashCents}
             myConfirmed={
               iAmRequester ? trade.requesterFinishedAt !== null : trade.responderFinishedAt !== null
             }
