@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { CardTile } from "@/components/card-tile";
+import { ProposeListingButton } from "@/components/propose-listing-button";
 import { ENABLED_GAMES } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
-import type { OfferType } from "@prisma/client";
+import type { ListingKind, OfferType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ export default async function ProfilePage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
+  const session = await auth();
   const user = await prisma.user.findUnique({
     where: { handle },
     select: {
@@ -39,6 +42,7 @@ export default async function ProfilePage({
 
   const haves = user.listings.filter((l) => l.kind === "HAVE");
   const wants = user.listings.filter((l) => l.kind === "WANT");
+  const canPropose = session?.user && session.user.id !== user.id;
 
   return (
     <section className="section">
@@ -65,8 +69,8 @@ export default async function ProfilePage({
           </div>
         </div>
 
-        <Section title="HAVE" tone="is-success" listings={haves} />
-        <Section title="WANT" tone="is-warning" listings={wants} />
+        <Section title="HAVE" tone="is-success" listings={haves} canPropose={!!canPropose} ownerId={user.id} />
+        <Section title="WANT" tone="is-warning" listings={wants} canPropose={!!canPropose} ownerId={user.id} />
       </div>
     </section>
   );
@@ -76,11 +80,15 @@ function Section({
   title,
   tone,
   listings,
+  canPropose,
+  ownerId,
 }: {
   title: string;
   tone: string;
   listings: {
     id: string;
+    cardId: string;
+    kind: ListingKind;
     quantity: number;
     condition: string | null;
     note: string | null;
@@ -96,6 +104,8 @@ function Section({
       game: { slug: string };
     };
   }[];
+  canPropose: boolean;
+  ownerId: string;
 }) {
   return (
     <div className="mb-6">
@@ -134,6 +144,17 @@ function Section({
                     {l.note && (
                       <div style={{ lineHeight: 1.3 }} className="mt-1 has-text-grey">
                         {l.note}
+                      </div>
+                    )}
+                    {canPropose && (
+                      <div className="mt-2">
+                        <ProposeListingButton
+                          ownerId={ownerId}
+                          cardId={l.cardId}
+                          kind={l.kind}
+                          offerType={l.offerType}
+                          priceCents={l.priceCents}
+                        />
                       </div>
                     )}
                   </div>

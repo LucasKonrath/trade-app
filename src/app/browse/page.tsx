@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { browseListings } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
+import { ProposeListingButton } from "@/components/propose-listing-button";
 import { GameSlug, ListingKind } from "@prisma/client";
 import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
@@ -135,10 +136,25 @@ export default async function BrowsePage({
                         {l.user.handle ? `@${l.user.handle}` : l.user.name ?? "unnamed"}
                       </Link>
                       {l.note && (
-                        <div className="is-size-7 has-text-grey mt-1" style={{ lineHeight: 1.3 }}>
+                        <div className="is-size-7 has-text-grey mt-1 mb-1" style={{ lineHeight: 1.3 }}>
                           {l.note}
                         </div>
                       )}
+                      <div className="mt-2">
+                        {session?.user ? (
+                          <ProposeListingButton
+                            ownerId={l.userId}
+                            cardId={l.cardId}
+                            kind={l.kind}
+                            offerType={l.offerType}
+                            priceCents={l.priceCents}
+                          />
+                        ) : (
+                          <Link href="/signin" className="button is-small is-light is-fullwidth">
+                            Sign in to propose
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   }
                 />
