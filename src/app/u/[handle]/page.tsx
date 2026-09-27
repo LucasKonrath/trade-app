@@ -127,6 +127,7 @@ function Section({
                 rarity={l.card.rarity}
                 gameSlug={l.card.game.slug}
                 orientation={l.card.orientation}
+                href={`/cards/${l.cardId}`}
                 footer={
                   <div className="is-size-7">
                     <div className="has-text-grey">

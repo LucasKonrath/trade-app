@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 type Props = {
   name: string;
@@ -8,6 +9,7 @@ type Props = {
   rarity?: string | null;
   gameSlug?: string;
   orientation?: string | null;
+  href?: string; // when set, the image + text section becomes a link to this URL
   footer?: React.ReactNode;
 };
 
@@ -19,20 +21,16 @@ export function CardTile({
   rarity,
   gameSlug,
   orientation,
+  href,
   footer,
 }: Props) {
   const aspectClass = orientation === "landscape" ? "is-3by2" : "is-2by3";
-  const meta = [
-    setName,
-    number ? `#${number}` : null,
-    rarity,
-    gameSlug,
-  ]
+  const meta = [setName, number ? `#${number}` : null, rarity, gameSlug]
     .filter(Boolean)
     .join(" · ");
 
-  return (
-    <div className="card card-tile">
+  const info = (
+    <>
       <div className="card-image">
         <figure className={`image ${aspectClass}`}>
           {imageUrl ? (
@@ -59,8 +57,24 @@ export function CardTile({
         <div className="card-meta" title={meta}>
           {meta}
         </div>
-        {footer && <div className="mt-3">{footer}</div>}
       </div>
+    </>
+  );
+
+  return (
+    <div className="card card-tile">
+      {href ? (
+        <Link href={href} className="has-text-inherit" style={{ color: "inherit" }}>
+          {info}
+        </Link>
+      ) : (
+        info
+      )}
+      {footer && (
+        <div className="card-content" style={{ paddingTop: 0 }}>
+          {footer}
+        </div>
+      )}
     </div>
   );
 }

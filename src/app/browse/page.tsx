@@ -113,6 +113,7 @@ export default async function BrowsePage({
                   rarity={l.card.rarity}
                   gameSlug={l.card.game.slug}
                   orientation={l.card.orientation}
+                  href={`/cards/${l.cardId}`}
                   footer={
                     <div>
                       <div className="tags are-small mb-1" style={{ gap: "0.25rem" }}>

@@ -78,6 +78,7 @@ function Section({
                 rarity={l.card.rarity}
                 gameSlug={l.card.game.slug}
                 orientation={l.card.orientation}
+                href={`/cards/${l.card.id}`}
                 footer={
                   <ListingEditor
                     listingId={l.id}

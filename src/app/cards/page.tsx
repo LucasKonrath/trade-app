@@ -104,6 +104,7 @@ export default async function CardsPage({
                     rarity={c.rarity}
                     gameSlug={c.game.slug}
                     orientation={c.orientation}
+                    href={`/cards/${c.id}`}
                     footer={
                       session?.user ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>

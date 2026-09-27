@@ -235,6 +235,134 @@ export async function getTradeForUser(tradeId: string, userId: string) {
   return trade;
 }
 
+export type CashMatch = {
+  card: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+    number: string | null;
+    rarity: string | null;
+    orientation: string | null;
+    set: { name: string };
+    game: { slug: string };
+  };
+  myMaxCents: number;
+  sellers: {
+    listingId: string;
+    userId: string;
+    handle: string | null;
+    name: string | null;
+    image: string | null;
+    priceCents: number;
+    condition: string | null;
+    note: string | null;
+    offerType: OfferType;
+    quantity: number;
+  }[];
+};
+
+/**
+ * For each of my WANT listings with a max price, find HAVE listings
+ * (from other users) priced at or below my max. Ordered by savings
+ * from my max — cheapest first.
+ */
+export async function findCashMatches(userId: string): Promise<CashMatch[]> {
+  const myWants = await prisma.listing.findMany({
+    where: {
+      userId,
+      kind: "WANT",
+      priceCents: { not: null },
+      offerType: { in: ["CASH_ONLY", "TRADE_OR_CASH"] as OfferType[] },
+      card: { game: { slug: { in: ENABLED_GAMES } } },
+    },
+    include: {
+      card: {
+        include: {
+          set: { select: { name: true } },
+          game: { select: { slug: true } },
+        },
+      },
+    },
+  });
+
+  const results: CashMatch[] = [];
+  for (const want of myWants) {
+    const sellers = await prisma.listing.findMany({
+      where: {
+        kind: "HAVE",
+        cardId: want.cardId,
+        userId: { not: userId },
+        priceCents: { not: null, lte: want.priceCents! },
+        offerType: { in: ["CASH_ONLY", "TRADE_OR_CASH"] as OfferType[] },
+      },
+      include: {
+        user: { select: { id: true, handle: true, name: true, image: true } },
+      },
+      orderBy: { priceCents: "asc" },
+      take: 20,
+    });
+    if (sellers.length === 0) continue;
+    results.push({
+      card: {
+        id: want.card.id,
+        name: want.card.name,
+        imageUrl: want.card.imageUrl,
+        number: want.card.number,
+        rarity: want.card.rarity,
+        orientation: want.card.orientation,
+        set: want.card.set,
+        game: want.card.game,
+      },
+      myMaxCents: want.priceCents!,
+      sellers: sellers.map((s) => ({
+        listingId: s.id,
+        userId: s.user.id,
+        handle: s.user.handle,
+        name: s.user.name,
+        image: s.user.image,
+        priceCents: s.priceCents!,
+        condition: s.condition,
+        note: s.note,
+        offerType: s.offerType,
+        quantity: s.quantity,
+      })),
+    });
+  }
+
+  // Cards where we saved the most money first (bigger gap between my max and cheapest seller)
+  results.sort((a, b) => {
+    const savingsA = a.myMaxCents - a.sellers[0].priceCents;
+    const savingsB = b.myMaxCents - b.sellers[0].priceCents;
+    return savingsB - savingsA;
+  });
+
+  return results;
+}
+
+export async function getCardWithListings(cardId: string, viewerId?: string) {
+  const card = await prisma.card.findUnique({
+    where: { id: cardId },
+    include: {
+      set: { select: { name: true, code: true } },
+      game: { select: { slug: true, name: true } },
+      listings: {
+        include: {
+          user: { select: { id: true, handle: true, name: true, image: true } },
+        },
+        orderBy: [{ kind: "asc" }, { priceCents: "asc" }, { createdAt: "desc" }],
+      },
+    },
+  });
+  if (!card) return null;
+
+  const mine = viewerId ? card.listings.filter((l) => l.userId === viewerId) : [];
+  const others = card.listings.filter((l) => (viewerId ? l.userId !== viewerId : true));
+  const sellers = others.filter((l) => l.kind === "HAVE");
+  const buyers = others.filter((l) => l.kind === "WANT");
+
+  return { card, mine, sellers, buyers };
+}
+
 export async function getCardsByIds(ids: string[]) {
   if (ids.length === 0) return [];
   return prisma.card.findMany({
