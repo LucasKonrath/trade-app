@@ -85,6 +85,10 @@ export const MESSAGES = {
       wantForCash: "Comprar · {price}",
       listedForSaleOrTrade: "Vendo ou troco · {price}",
       wantForCashOrTrade: "Compro ou troco · {price}",
+      listedForOffers: "À venda · a combinar",
+      wantForOffers: "Comprar · a combinar",
+      listedForTradeOrOffers: "Vendo ou troco · a combinar",
+      wantForTradeOrOffers: "Compro ou troco · a combinar",
       pageOf: "Página {page} de {pages}",
     },
     listingChip: {
@@ -92,7 +96,6 @@ export const MESSAGES = {
       maxPriceOptional: "Preço máximo (opcional)",
       acceptTrades: "Também aceito trocas",
       invalidPrice: "Preço inválido",
-      needPriceOrTrade: "Defina um preço ou aceite trocas",
     },
     cardDetail: {
       breadcrumb: "Cartas",
@@ -341,6 +344,10 @@ export const MESSAGES = {
       wantForCash: "Buying · {price}",
       listedForSaleOrTrade: "Sell or trade · {price}",
       wantForCashOrTrade: "Buy or trade · {price}",
+      listedForOffers: "For sale · make offer",
+      wantForOffers: "Buying · open to offers",
+      listedForTradeOrOffers: "Sell or trade · make offer",
+      wantForTradeOrOffers: "Buy or trade · open to offers",
       pageOf: "Page {page} of {pages}",
     },
     listingChip: {
@@ -348,7 +355,6 @@ export const MESSAGES = {
       maxPriceOptional: "Max price (optional)",
       acceptTrades: "Also accept trades",
       invalidPrice: "Invalid price",
-      needPriceOrTrade: "Set a price or enable trades",
     },
     cardDetail: {
       breadcrumb: "Cards",

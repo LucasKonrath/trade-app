@@ -41,10 +41,6 @@ export function ListingChip({ cardId, kind, existing }: Props) {
         return;
       }
     }
-    if (!acceptTrades && cents == null) {
-      setError(t("listingChip.needPriceOrTrade"));
-      return;
-    }
     startTransition(async () => {
       try {
         await saveListing({ cardId, kind, priceCents: cents, acceptTrades });
@@ -87,17 +83,26 @@ export function ListingChip({ cardId, kind, existing }: Props) {
     if (existing.offerType === "TRADE_ONLY") {
       summary = kind === "HAVE" ? t("cards.listedForTrade") : t("cards.wantForTrade");
     } else if (existing.offerType === "CASH_ONLY") {
-      const price = formatBRL(existing.priceCents!);
-      summary =
-        kind === "HAVE"
-          ? t("cards.listedForSale", { price })
-          : t("cards.wantForCash", { price });
+      if (existing.priceCents == null) {
+        summary = kind === "HAVE" ? t("cards.listedForOffers") : t("cards.wantForOffers");
+      } else {
+        const price = formatBRL(existing.priceCents);
+        summary =
+          kind === "HAVE"
+            ? t("cards.listedForSale", { price })
+            : t("cards.wantForCash", { price });
+      }
     } else {
-      const price = formatBRL(existing.priceCents!);
-      summary =
-        kind === "HAVE"
-          ? t("cards.listedForSaleOrTrade", { price })
-          : t("cards.wantForCashOrTrade", { price });
+      if (existing.priceCents == null) {
+        summary =
+          kind === "HAVE" ? t("cards.listedForTradeOrOffers") : t("cards.wantForTradeOrOffers");
+      } else {
+        const price = formatBRL(existing.priceCents);
+        summary =
+          kind === "HAVE"
+            ? t("cards.listedForSaleOrTrade", { price })
+            : t("cards.wantForCashOrTrade", { price });
+      }
     }
     return (
       <button

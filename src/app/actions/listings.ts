@@ -194,10 +194,7 @@ export async function saveListing(input: {
 
   const parsed = SaveListingSchema.parse(input);
 
-  if (!parsed.acceptTrades && parsed.priceCents == null) {
-    throw new Error("Set a price or enable trades");
-  }
-
+  // No trade, no price → still valid: means "cash only, price negotiable" (make me an offer).
   const offerType: OfferType =
     parsed.acceptTrades && parsed.priceCents != null
       ? OfferType.TRADE_OR_CASH
