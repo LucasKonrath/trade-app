@@ -176,7 +176,11 @@ export function TradeActions({
   }
 
   if (buttons.length === 0) {
-    return <p className="has-text-grey is-size-7">No actions available for this state.</p>;
+    return (
+      <p className="has-text-grey is-size-7">
+        No actions available while the trade is <strong>{status}</strong>.
+      </p>
+    );
   }
 
   return (

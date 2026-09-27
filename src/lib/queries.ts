@@ -190,9 +190,14 @@ export async function findMatches(userId: string): Promise<Match[]> {
 }
 
 export async function getMyTrades(userId: string) {
+  // Requester sees all their trades (including OPEN drafts).
+  // Responder only sees trades that have been sent (status != OPEN).
   return prisma.trade.findMany({
     where: {
-      OR: [{ requesterId: userId }, { responderId: userId }],
+      OR: [
+        { requesterId: userId },
+        { responderId: userId, status: { not: "OPEN" } },
+      ],
     },
     include: {
       requester: { select: { id: true, handle: true, name: true, image: true } },
@@ -222,7 +227,11 @@ export async function getTradeForUser(tradeId: string, userId: string) {
     },
   });
   if (!trade) return null;
-  if (trade.requesterId !== userId && trade.responderId !== userId) return null;
+  const isRequester = trade.requesterId === userId;
+  const isResponder = trade.responderId === userId;
+  if (!isRequester && !isResponder) return null;
+  // Responder cannot see the trade until it's been sent.
+  if (isResponder && !isRequester && trade.status === "OPEN") return null;
   return trade;
 }
 
