@@ -87,6 +87,7 @@ function Section({
       imageUrl: string | null;
       number: string | null;
       rarity: string | null;
+      orientation: string | null;
       set: { name: string; code: string };
       game: { slug: string };
     };
@@ -101,7 +102,7 @@ function Section({
       {listings.length === 0 ? (
         <div className="has-text-grey is-italic is-size-7">None listed.</div>
       ) : (
-        <div className="columns is-multiline is-variable is-3">
+        <div className="columns is-mobile is-multiline is-variable is-3">
           {listings.map((l) => (
             <div key={l.id} className="column is-2-desktop is-one-third-tablet is-half-mobile">
               <CardTile
@@ -111,6 +112,7 @@ function Section({
                 number={l.card.number}
                 rarity={l.card.rarity}
                 gameSlug={l.card.game.slug}
+                orientation={l.card.orientation}
                 footer={
                   <div className="is-size-7 has-text-grey">
                     Qty {l.quantity}

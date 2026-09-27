@@ -104,7 +104,7 @@ export default async function TradePage({
             {iGive.length === 0 ? (
               <div className="notification is-light">Nothing on this side yet.</div>
             ) : (
-              <div className="columns is-multiline is-variable is-2">
+              <div className="columns is-mobile is-multiline is-variable is-2">
                 {iGive.map((item) => (
                   <div key={item.id} className="column is-half">
                     <CardTile
@@ -114,6 +114,7 @@ export default async function TradePage({
                       number={item.card.number}
                       rarity={item.card.rarity}
                       gameSlug={item.card.game.slug}
+                      orientation={item.card.orientation}
                     />
                   </div>
                 ))}
@@ -129,7 +130,7 @@ export default async function TradePage({
             {iReceive.length === 0 ? (
               <div className="notification is-light">Nothing on this side yet.</div>
             ) : (
-              <div className="columns is-multiline is-variable is-2">
+              <div className="columns is-mobile is-multiline is-variable is-2">
                 {iReceive.map((item) => (
                   <div key={item.id} className="column is-half">
                     <CardTile
@@ -139,6 +140,7 @@ export default async function TradePage({
                       number={item.card.number}
                       rarity={item.card.rarity}
                       gameSlug={item.card.game.slug}
+                      orientation={item.card.orientation}
                     />
                   </div>
                 ))}

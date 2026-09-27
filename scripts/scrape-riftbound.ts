@@ -23,6 +23,7 @@ type ApiCard = {
   setName: string;
   imageUrl?: string;
   thumbnailUrl?: string;
+  orientation?: string;
 };
 
 type Envelope = {
@@ -103,6 +104,7 @@ async function main() {
             number: c.number ?? null,
             rarity: c.rarity ?? null,
             imageUrl,
+            orientation: c.orientation ?? null,
             setId,
           },
           create: {
@@ -113,6 +115,7 @@ async function main() {
             number: c.number ?? null,
             rarity: c.rarity ?? null,
             imageUrl,
+            orientation: c.orientation ?? null,
           },
         });
       })

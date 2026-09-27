@@ -105,14 +105,15 @@ model CardSet {
 }
 
 model Card {
-  id         String  @id @default(cuid())
-  gameId     String
-  setId      String
-  externalId String // upstream ID from pokemontcg.io or riftbound-db
-  name       String
-  number     String?
-  rarity     String?
-  imageUrl   String?
+  id          String  @id @default(cuid())
+  gameId      String
+  setId       String
+  externalId  String // upstream ID from pokemontcg.io or riftbound-db
+  name        String
+  number      String?
+  rarity      String?
+  imageUrl    String?
+  orientation String? // "portrait" or "landscape" — controls tile aspect ratio
 
   game       Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
   set        CardSet     @relation(fields: [setId], references: [id], onDelete: Cascade)

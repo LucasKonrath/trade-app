@@ -88,7 +88,7 @@ export default async function BrowsePage({
             </Link>
           </div>
         ) : (
-          <div className="columns is-multiline is-variable is-3">
+          <div className="columns is-mobile is-multiline is-variable is-3">
             {items.map((l) => (
               <div key={l.id} className="column is-2-desktop is-one-third-tablet is-half-mobile">
                 <CardTile
@@ -98,6 +98,7 @@ export default async function BrowsePage({
                   number={l.card.number}
                   rarity={l.card.rarity}
                   gameSlug={l.card.game.slug}
+                  orientation={l.card.orientation}
                   footer={
                     <div>
                       <span

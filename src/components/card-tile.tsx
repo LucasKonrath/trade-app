@@ -7,10 +7,21 @@ type Props = {
   number?: string | null;
   rarity?: string | null;
   gameSlug?: string;
+  orientation?: string | null;
   footer?: React.ReactNode;
 };
 
-export function CardTile({ name, imageUrl, setName, number, rarity, gameSlug, footer }: Props) {
+export function CardTile({
+  name,
+  imageUrl,
+  setName,
+  number,
+  rarity,
+  gameSlug,
+  orientation,
+  footer,
+}: Props) {
+  const aspectClass = orientation === "landscape" ? "is-3by2" : "is-2by3";
   const meta = [
     setName,
     number ? `#${number}` : null,
@@ -23,7 +34,7 @@ export function CardTile({ name, imageUrl, setName, number, rarity, gameSlug, fo
   return (
     <div className="card card-tile">
       <div className="card-image">
-        <figure className="image is-2by3">
+        <figure className={`image ${aspectClass}`}>
           {imageUrl ? (
             <Image
               src={imageUrl}

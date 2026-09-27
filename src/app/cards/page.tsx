@@ -92,7 +92,7 @@ export default async function CardsPage({
             No cards match. Try a different search.
           </div>
         ) : (
-          <div className="columns is-multiline is-variable is-3">
+          <div className="columns is-mobile is-multiline is-variable is-3">
             {items.map((c) => {
               const state = byCard.get(c.id) ?? {};
               return (
@@ -104,6 +104,7 @@ export default async function CardsPage({
                     number={c.number}
                     rarity={c.rarity}
                     gameSlug={c.game.slug}
+                    orientation={c.orientation}
                     footer={
                       session?.user ? (
                         <div className="buttons are-small mb-0" style={{ gap: "0.375rem" }}>

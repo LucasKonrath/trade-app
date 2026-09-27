@@ -67,7 +67,7 @@ function Section({
           </Link>
         </div>
       ) : (
-        <div className="columns is-multiline is-variable is-3">
+        <div className="columns is-mobile is-multiline is-variable is-3">
           {listings.map((l) => (
             <div key={l.id} className="column is-2-desktop is-one-third-tablet is-half-mobile">
               <CardTile
@@ -77,6 +77,7 @@ function Section({
                 number={l.card.number}
                 rarity={l.card.rarity}
                 gameSlug={l.card.game.slug}
+                orientation={l.card.orientation}
                 footer={
                   <ListingEditor
                     listingId={l.id}

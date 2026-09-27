@@ -83,7 +83,7 @@ export default async function MatchesPage() {
                 <div className="columns">
                   <div className="column">
                     <h3 className="subtitle is-6">You give →</h3>
-                    <div className="columns is-multiline is-variable is-2">
+                    <div className="columns is-mobile is-multiline is-variable is-2">
                       {m.theyWantIds.map((id) => {
                         const c = cardById.get(id);
                         if (!c) return null;
@@ -96,6 +96,7 @@ export default async function MatchesPage() {
                               number={c.number}
                               rarity={c.rarity}
                               gameSlug={c.game.slug}
+                              orientation={c.orientation}
                             />
                           </div>
                         );
@@ -104,7 +105,7 @@ export default async function MatchesPage() {
                   </div>
                   <div className="column">
                     <h3 className="subtitle is-6">← You receive</h3>
-                    <div className="columns is-multiline is-variable is-2">
+                    <div className="columns is-mobile is-multiline is-variable is-2">
                       {m.iWantIds.map((id) => {
                         const c = cardById.get(id);
                         if (!c) return null;
@@ -117,6 +118,7 @@ export default async function MatchesPage() {
                               number={c.number}
                               rarity={c.rarity}
                               gameSlug={c.game.slug}
+                              orientation={c.orientation}
                             />
                           </div>
                         );
