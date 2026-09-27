@@ -101,6 +101,8 @@ export const MESSAGES = {
       wouldBuy: "Compro com dinheiro",
       invalidPrice: "Preço inválido",
       pickAtLeastOne: "Escolha pelo menos uma opção",
+      suggestion: "Sugestão da comunidade: {price}.",
+      useSuggestion: "Usar",
     },
     cardDetail: {
       breadcrumb: "Cartas",
@@ -365,6 +367,8 @@ export const MESSAGES = {
       wouldBuy: "Buy for cash",
       invalidPrice: "Invalid price",
       pickAtLeastOne: "Pick at least one option",
+      suggestion: "Community suggestion: {price}.",
+      useSuggestion: "Use",
     },
     cardDetail: {
       breadcrumb: "Cards",

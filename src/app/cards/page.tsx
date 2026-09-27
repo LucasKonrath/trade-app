@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { searchCards } from "@/lib/queries";
+import { searchCards, getSuggestedPrices } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ListingChip } from "@/components/listing-chip";
 import { GameSlug } from "@prisma/client";
@@ -60,6 +60,8 @@ export default async function CardsPage({
     bucket[l.kind] = { id: l.id, offerType: l.offerType, priceCents: l.priceCents };
     byCard.set(l.cardId, bucket);
   }
+
+  const suggestedPrices = await getSuggestedPrices(cardIds, session?.user?.id);
 
   const marketRows = await prisma.listing.groupBy({
     by: ["cardId", "kind"],
@@ -175,8 +177,18 @@ export default async function CardsPage({
                         </Link>
                         {session?.user ? (
                           <>
-                            <ListingChip cardId={c.id} kind="HAVE" existing={state.HAVE ?? null} />
-                            <ListingChip cardId={c.id} kind="WANT" existing={state.WANT ?? null} />
+                            <ListingChip
+                              cardId={c.id}
+                              kind="HAVE"
+                              existing={state.HAVE ?? null}
+                              suggestedPriceCents={suggestedPrices.get(c.id) ?? null}
+                            />
+                            <ListingChip
+                              cardId={c.id}
+                              kind="WANT"
+                              existing={state.WANT ?? null}
+                              suggestedPriceCents={suggestedPrices.get(c.id) ?? null}
+                            />
                           </>
                         ) : (
                           <Link

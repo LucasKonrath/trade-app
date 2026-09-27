@@ -14,6 +14,7 @@ type Props = {
     offerType: OfferType;
     priceCents: number | null;
   } | null;
+  suggestedPriceCents?: number | null;
 };
 
 function initialFlags(kind: ListingKind, existing: Props["existing"]) {
@@ -29,7 +30,7 @@ function initialFlags(kind: ListingKind, existing: Props["existing"]) {
     : { acceptTrades: false, acceptCash: true };
 }
 
-export function ListingChip({ cardId, kind, existing }: Props) {
+export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const t = useT();
@@ -163,7 +164,7 @@ export function ListingChip({ cardId, kind, existing }: Props) {
             <input
               type="text"
               inputMode="decimal"
-              placeholder="12,50"
+              placeholder={suggestedPriceCents ? formatBRL(suggestedPriceCents) : "12,50"}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               onKeyDown={(e) => {
@@ -174,6 +175,18 @@ export function ListingChip({ cardId, kind, existing }: Props) {
             />
             <span className="icon is-small is-left is-size-7">R$</span>
           </div>
+          {suggestedPriceCents != null && !price.trim() && (
+            <p className="help">
+              {t("listingChip.suggestion", { price: formatBRL(suggestedPriceCents) })}{" "}
+              <a
+                onClick={() =>
+                  setPrice(String(suggestedPriceCents / 100).replace(".", ","))
+                }
+              >
+                {t("listingChip.useSuggestion")}
+              </a>
+            </p>
+          )}
         </div>
       )}
 

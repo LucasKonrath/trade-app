@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
-import { getCardWithListings } from "@/lib/queries";
+import { getCardWithListings, getSuggestedPrices } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ProposeListingButton } from "@/components/propose-listing-button";
 import { ListingChip } from "@/components/listing-chip";
@@ -25,6 +25,8 @@ export default async function CardDetailPage({
   const { card, mine, sellers, buyers } = data;
   const myHave = mine.find((l) => l.kind === "HAVE") ?? null;
   const myWant = mine.find((l) => l.kind === "WANT") ?? null;
+  const suggestedMap = await getSuggestedPrices([card.id], session?.user?.id);
+  const suggestedPriceCents = suggestedMap.get(card.id) ?? null;
 
   return (
     <section className="section">
@@ -78,6 +80,7 @@ export default async function CardDetailPage({
                             }
                           : null
                       }
+                      suggestedPriceCents={suggestedPriceCents}
                     />
                   </div>
                   <div className="column">
@@ -94,6 +97,7 @@ export default async function CardDetailPage({
                             }
                           : null
                       }
+                      suggestedPriceCents={suggestedPriceCents}
                     />
                   </div>
                 </div>

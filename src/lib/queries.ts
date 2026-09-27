@@ -363,6 +363,42 @@ export async function getCardWithListings(cardId: string, viewerId?: string) {
   return { card, mine, sellers, buyers };
 }
 
+/**
+ * Suggested market price per card: median of HAVE priceCents from other
+ * users. Cards with no priced HAVE listings return no entry in the map.
+ */
+export async function getSuggestedPrices(
+  cardIds: string[],
+  excludeUserId?: string,
+): Promise<Map<string, number>> {
+  if (cardIds.length === 0) return new Map();
+  const rows = await prisma.listing.findMany({
+    where: {
+      cardId: { in: cardIds },
+      kind: "HAVE",
+      priceCents: { not: null },
+      ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
+    },
+    select: { cardId: true, priceCents: true },
+  });
+  const byCard = new Map<string, number[]>();
+  for (const r of rows) {
+    if (r.priceCents == null) continue;
+    const arr = byCard.get(r.cardId) ?? [];
+    arr.push(r.priceCents);
+    byCard.set(r.cardId, arr);
+  }
+  const out = new Map<string, number>();
+  for (const [cardId, prices] of byCard) {
+    prices.sort((a, b) => a - b);
+    const mid = Math.floor(prices.length / 2);
+    const median =
+      prices.length % 2 === 0 ? (prices[mid - 1] + prices[mid]) / 2 : prices[mid];
+    out.set(cardId, Math.round(median));
+  }
+  return out;
+}
+
 export async function getCardsByIds(ids: string[]) {
   if (ids.length === 0) return [];
   return prisma.card.findMany({
