@@ -1,26 +1,102 @@
-@import "tailwindcss";
+@import "bulma/css/bulma.min.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Riftbound brand palette */
+  --brand-navy: #0a1e42;
+  --brand-navy-dark: #061530;
+  --brand-navy-light: #17305c;
+  --brand-orange: #e89419;
+  --brand-orange-dark: #c67c11;
+
+  /* Remap Bulma primary → Riftbound orange */
+  --bulma-primary-h: 35;
+  --bulma-primary-s: 82%;
+  --bulma-primary-l: 51%;
+
+  /* Remap Bulma link → Riftbound navy */
+  --bulma-link-h: 219;
+  --bulma-link-s: 75%;
+  --bulma-link-l: 28%;
+
+  /* Slightly warm body background */
+  --bulma-body-background-color: hsl(35, 25%, 97%);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Navy nav + hero */
+.navbar.brand-navbar {
+  background-color: var(--brand-navy);
+  border-bottom: 3px solid var(--brand-orange);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.navbar.brand-navbar .navbar-item {
+  color: hsl(0, 0%, 92%);
+}
+
+.navbar.brand-navbar .navbar-item:hover,
+.navbar.brand-navbar a.navbar-item:hover {
+  background-color: var(--brand-navy-light);
+  color: var(--brand-orange);
+}
+
+.navbar.brand-navbar .navbar-brand .navbar-item {
+  color: #fff;
+}
+
+.hero.brand-hero {
+  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-light) 100%);
+  color: hsl(0, 0%, 96%);
+}
+
+.hero.brand-hero .title,
+.hero.brand-hero .subtitle {
+  color: hsl(0, 0%, 96%);
+}
+
+.hero.brand-hero .subtitle {
+  color: hsl(35, 30%, 82%);
+}
+
+/* Section titles get a subtle brand accent */
+.section .title {
+  color: var(--brand-navy);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main.page {
+  flex: 1;
+}
+
+.card-tile .card-image {
+  background-color: hsl(0, 0%, 96%);
+}
+
+.card-tile .card-image .image img {
+  object-fit: contain;
+}
+
+.card-tile .card-content {
+  padding: 0.5rem;
+}
+
+.card-name {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  font-size: 0.6875rem;
+  color: hsl(0, 0%, 48%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
