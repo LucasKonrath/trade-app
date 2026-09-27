@@ -5,8 +5,7 @@ import { auth } from "@/auth";
 import { getCardWithListings } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ProposeListingButton } from "@/components/propose-listing-button";
-import { PriceChip } from "@/components/price-chip";
-import { ListToggle } from "@/components/list-toggle";
+import { ListingChip } from "@/components/listing-chip";
 import { formatBRL } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
 import type { ListingKind } from "@prisma/client";
@@ -67,33 +66,35 @@ export default async function CardDetailPage({
                 <div className="columns is-mobile">
                   <div className="column">
                     <p className="is-size-7 has-text-grey mb-1">{t("cardDetail.have")}</p>
-                    <ListToggle
+                    <ListingChip
                       cardId={card.id}
-                      existing={myHave ? { id: myHave.id, quantity: myHave.quantity } : null}
                       kind="HAVE"
+                      existing={
+                        myHave
+                          ? {
+                              id: myHave.id,
+                              offerType: myHave.offerType,
+                              priceCents: myHave.priceCents,
+                            }
+                          : null
+                      }
                     />
-                    <div className="mt-2">
-                      <PriceChip
-                        cardId={card.id}
-                        kind="HAVE"
-                        currentPriceCents={myHave?.priceCents ?? null}
-                      />
-                    </div>
                   </div>
                   <div className="column">
                     <p className="is-size-7 has-text-grey mb-1">{t("cardDetail.want")}</p>
-                    <ListToggle
+                    <ListingChip
                       cardId={card.id}
-                      existing={myWant ? { id: myWant.id, quantity: myWant.quantity } : null}
                       kind="WANT"
+                      existing={
+                        myWant
+                          ? {
+                              id: myWant.id,
+                              offerType: myWant.offerType,
+                              priceCents: myWant.priceCents,
+                            }
+                          : null
+                      }
                     />
-                    <div className="mt-2">
-                      <PriceChip
-                        cardId={card.id}
-                        kind="WANT"
-                        currentPriceCents={myWant?.priceCents ?? null}
-                      />
-                    </div>
                   </div>
                 </div>
               </div>

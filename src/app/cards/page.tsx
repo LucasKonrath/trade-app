@@ -3,8 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { searchCards } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
-import { ListToggle } from "@/components/list-toggle";
-import { PriceChip } from "@/components/price-chip";
+import { ListingChip } from "@/components/listing-chip";
 import { GameSlug } from "@prisma/client";
 import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
@@ -40,15 +39,25 @@ export default async function CardsPage({
   const myListings = session?.user
     ? await prisma.listing.findMany({
         where: { userId: session.user.id, cardId: { in: cardIds } },
-        select: { id: true, cardId: true, kind: true, quantity: true, priceCents: true },
+        select: {
+          id: true,
+          cardId: true,
+          kind: true,
+          offerType: true,
+          priceCents: true,
+        },
       })
     : [];
 
-  type Bucket = { id: string; quantity: number; priceCents: number | null };
+  type Bucket = {
+    id: string;
+    offerType: (typeof myListings)[number]["offerType"];
+    priceCents: number | null;
+  };
   const byCard = new Map<string, { HAVE?: Bucket; WANT?: Bucket }>();
   for (const l of myListings) {
     const bucket = byCard.get(l.cardId) ?? {};
-    bucket[l.kind] = { id: l.id, quantity: l.quantity, priceCents: l.priceCents };
+    bucket[l.kind] = { id: l.id, offerType: l.offerType, priceCents: l.priceCents };
     byCard.set(l.cardId, bucket);
   }
 
@@ -166,18 +175,8 @@ export default async function CardsPage({
                         </Link>
                         {session?.user ? (
                           <>
-                            <ListToggle cardId={c.id} existing={state.HAVE ?? null} kind="HAVE" />
-                            <PriceChip
-                              cardId={c.id}
-                              kind="HAVE"
-                              currentPriceCents={state.HAVE?.priceCents ?? null}
-                            />
-                            <ListToggle cardId={c.id} existing={state.WANT ?? null} kind="WANT" />
-                            <PriceChip
-                              cardId={c.id}
-                              kind="WANT"
-                              currentPriceCents={state.WANT?.priceCents ?? null}
-                            />
+                            <ListingChip cardId={c.id} kind="HAVE" existing={state.HAVE ?? null} />
+                            <ListingChip cardId={c.id} kind="WANT" existing={state.WANT ?? null} />
                           </>
                         ) : (
                           <Link

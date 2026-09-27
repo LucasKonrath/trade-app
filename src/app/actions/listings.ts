@@ -166,6 +166,70 @@ export async function removePriceFromListing(input: { cardId: string; kind: List
   revalidatePath("/matches");
 }
 
+const SaveListingSchema = z.object({
+  cardId: z.string().cuid(),
+  kind: KindEnum,
+  priceCents: z.number().int().min(1).max(10_000_000).nullable(),
+  acceptTrades: z.boolean(),
+});
+
+/**
+ * Unified save for the compact card-tile chip.
+ * offerType is derived from (acceptTrades, price):
+ *   accept + no price   → TRADE_ONLY
+ *   accept + price      → TRADE_OR_CASH
+ *   no accept + price   → CASH_ONLY
+ *   no accept + no price → error (nothing to save)
+ * Existing listing's quantity/condition/note are preserved.
+ */
+export async function saveListing(input: {
+  cardId: string;
+  kind: ListingKind;
+  priceCents: number | null;
+  acceptTrades: boolean;
+}) {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+  if (!session.user.handle) redirect("/onboarding");
+
+  const parsed = SaveListingSchema.parse(input);
+
+  if (!parsed.acceptTrades && parsed.priceCents == null) {
+    throw new Error("Set a price or enable trades");
+  }
+
+  const offerType: OfferType =
+    parsed.acceptTrades && parsed.priceCents != null
+      ? OfferType.TRADE_OR_CASH
+      : parsed.acceptTrades
+        ? OfferType.TRADE_ONLY
+        : OfferType.CASH_ONLY;
+
+  await prisma.listing.upsert({
+    where: {
+      userId_cardId_kind: {
+        userId: session.user.id,
+        cardId: parsed.cardId,
+        kind: parsed.kind,
+      },
+    },
+    update: { offerType, priceCents: parsed.priceCents },
+    create: {
+      userId: session.user.id,
+      cardId: parsed.cardId,
+      kind: parsed.kind,
+      offerType,
+      priceCents: parsed.priceCents,
+      quantity: 1,
+    },
+  });
+
+  revalidatePath("/cards");
+  revalidatePath("/me/listings");
+  revalidatePath("/browse");
+  revalidatePath("/matches");
+}
+
 const DeleteSchema = z.object({ listingId: z.string().cuid() });
 
 export async function deleteListing(formData: FormData) {
