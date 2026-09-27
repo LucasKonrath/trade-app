@@ -6,7 +6,10 @@ import { prisma } from "@/lib/prisma";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  providers: [Google, Discord],
+  providers: [
+    Google({ allowDangerousEmailAccountLinking: true }),
+    Discord({ allowDangerousEmailAccountLinking: true }),
+  ],
   session: { strategy: "database" },
   callbacks: {
     async session({ session, user }) {
