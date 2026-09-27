@@ -165,9 +165,11 @@ export async function acceptTrade(formData: FormData) {
 }
 
 /**
- * ACCEPTED → FINISHED. Either participant. Auto-removes matching HAVE/WANT listings.
+ * Mark caller's side as ready to finish. Only transitions to FINISHED
+ * (and removes listings) when BOTH parties have confirmed. Otherwise
+ * the trade stays in ACCEPTED with one confirmation recorded.
  */
-export async function finishTrade(formData: FormData) {
+export async function confirmFinish(formData: FormData) {
   const me = await currentUser();
   const { tradeId } = TradeIdSchema.parse({ tradeId: formData.get("tradeId") });
 
@@ -179,6 +181,25 @@ export async function finishTrade(formData: FormData) {
   assertParticipant(trade, me.id);
   if (trade.status !== TradeStatus.ACCEPTED) throw new Error("Trade is not in ACCEPTED state");
 
+  const now = new Date();
+  const iAmRequester = trade.requesterId === me.id;
+  const myField = iAmRequester ? "requesterFinishedAt" : "responderFinishedAt";
+  const otherAlreadyConfirmed = iAmRequester
+    ? trade.responderFinishedAt !== null
+    : trade.requesterFinishedAt !== null;
+
+  if (!otherAlreadyConfirmed) {
+    // Just record my confirmation. Trade stays ACCEPTED.
+    await prisma.trade.update({
+      where: { id: tradeId },
+      data: { [myField]: now },
+    });
+    revalidatePath(`/trades/${tradeId}`);
+    revalidatePath("/trades");
+    return;
+  }
+
+  // Both parties are now confirmed — finalize.
   const requesterGiveCardIds = trade.items
     .filter((i) => i.direction === TradeDirection.FROM_REQUESTER)
     .map((i) => i.cardId);
@@ -189,37 +210,23 @@ export async function finishTrade(formData: FormData) {
   await prisma.$transaction([
     prisma.trade.update({
       where: { id: tradeId },
-      data: { status: TradeStatus.FINISHED, finishedAt: new Date() },
-    }),
-    // Requester gives → remove requester's HAVE + responder's WANT for those cards.
-    prisma.listing.deleteMany({
-      where: {
-        userId: trade.requesterId,
-        cardId: { in: requesterGiveCardIds },
-        kind: "HAVE",
+      data: {
+        status: TradeStatus.FINISHED,
+        finishedAt: now,
+        [myField]: now,
       },
     }),
     prisma.listing.deleteMany({
-      where: {
-        userId: trade.responderId,
-        cardId: { in: requesterGiveCardIds },
-        kind: "WANT",
-      },
-    }),
-    // Responder gives → remove responder's HAVE + requester's WANT for those cards.
-    prisma.listing.deleteMany({
-      where: {
-        userId: trade.responderId,
-        cardId: { in: responderGiveCardIds },
-        kind: "HAVE",
-      },
+      where: { userId: trade.requesterId, cardId: { in: requesterGiveCardIds }, kind: "HAVE" },
     }),
     prisma.listing.deleteMany({
-      where: {
-        userId: trade.requesterId,
-        cardId: { in: responderGiveCardIds },
-        kind: "WANT",
-      },
+      where: { userId: trade.responderId, cardId: { in: requesterGiveCardIds }, kind: "WANT" },
+    }),
+    prisma.listing.deleteMany({
+      where: { userId: trade.responderId, cardId: { in: responderGiveCardIds }, kind: "HAVE" },
+    }),
+    prisma.listing.deleteMany({
+      where: { userId: trade.requesterId, cardId: { in: responderGiveCardIds }, kind: "WANT" },
     }),
   ]);
 
@@ -228,6 +235,29 @@ export async function finishTrade(formData: FormData) {
   revalidatePath("/me/listings");
   revalidatePath("/matches");
   revalidatePath("/browse");
+}
+
+/**
+ * Retract your finish confirmation while the trade is still ACCEPTED.
+ */
+export async function unconfirmFinish(formData: FormData) {
+  const me = await currentUser();
+  const { tradeId } = TradeIdSchema.parse({ tradeId: formData.get("tradeId") });
+
+  const trade = await prisma.trade.findUnique({ where: { id: tradeId } });
+  if (!trade) throw new Error("Trade not found");
+  assertParticipant(trade, me.id);
+  if (trade.status !== TradeStatus.ACCEPTED) throw new Error("Trade is not in ACCEPTED state");
+
+  const myField = trade.requesterId === me.id ? "requesterFinishedAt" : "responderFinishedAt";
+
+  await prisma.trade.update({
+    where: { id: tradeId },
+    data: { [myField]: null },
+  });
+
+  revalidatePath(`/trades/${tradeId}`);
+  revalidatePath("/trades");
 }
 
 /**

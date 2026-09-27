@@ -154,6 +154,13 @@ export default async function TradePage({
             iAmRequester={iAmRequester}
             iGiveCount={iGive.length}
             iReceiveCount={iReceive.length}
+            myConfirmed={
+              iAmRequester ? trade.requesterFinishedAt !== null : trade.responderFinishedAt !== null
+            }
+            otherConfirmed={
+              iAmRequester ? trade.responderFinishedAt !== null : trade.requesterFinishedAt !== null
+            }
+            otherHandle={other.handle}
           />
         </div>
       </div>

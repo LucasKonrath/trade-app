@@ -158,13 +158,15 @@ enum TradeDirection {
 }
 
 model Trade {
-  id          String      @id @default(cuid())
-  requesterId String
-  responderId String
-  status      TradeStatus @default(OPEN)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  finishedAt  DateTime?
+  id                    String      @id @default(cuid())
+  requesterId           String
+  responderId           String
+  status                TradeStatus @default(OPEN)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  finishedAt            DateTime?
+  requesterFinishedAt   DateTime?
+  responderFinishedAt   DateTime?
 
   requester User        @relation("RequesterTrades", fields: [requesterId], references: [id], onDelete: Cascade)
   responder User        @relation("ResponderTrades", fields: [responderId], references: [id], onDelete: Cascade)

@@ -1,7 +1,13 @@
 "use client";
 
 import { useTransition } from "react";
-import { sendTrade, acceptTrade, finishTrade, deleteTrade } from "@/app/actions/trades";
+import {
+  sendTrade,
+  acceptTrade,
+  confirmFinish,
+  unconfirmFinish,
+  deleteTrade,
+} from "@/app/actions/trades";
 import type { TradeStatus } from "@prisma/client";
 
 type Props = {
@@ -10,9 +16,21 @@ type Props = {
   iAmRequester: boolean;
   iGiveCount: number;
   iReceiveCount: number;
+  myConfirmed: boolean;
+  otherConfirmed: boolean;
+  otherHandle: string | null;
 };
 
-export function TradeActions({ tradeId, status, iAmRequester, iGiveCount, iReceiveCount }: Props) {
+export function TradeActions({
+  tradeId,
+  status,
+  iAmRequester,
+  iGiveCount,
+  iReceiveCount,
+  myConfirmed,
+  otherConfirmed,
+  otherHandle,
+}: Props) {
   const [pending, startTransition] = useTransition();
 
   const run = (fn: (fd: FormData) => Promise<void>) => {
@@ -22,12 +40,15 @@ export function TradeActions({ tradeId, status, iAmRequester, iGiveCount, iRecei
       try {
         await fn(fd);
       } catch (err) {
-        alert((err as Error).message);
+        if ((err as Error).message !== "NEXT_REDIRECT") {
+          alert((err as Error).message);
+        }
       }
     });
   };
 
   const buttons: React.ReactNode[] = [];
+  let banner: React.ReactNode = null;
 
   if (status === "OPEN" && iAmRequester) {
     const canSend = iGiveCount > 0 && iReceiveCount > 0;
@@ -40,8 +61,6 @@ export function TradeActions({ tradeId, status, iAmRequester, iGiveCount, iRecei
       >
         Send request
       </button>,
-    );
-    buttons.push(
       <button
         key="del"
         onClick={() => confirm("Delete this draft?") && run(deleteTrade)}
@@ -88,18 +107,63 @@ export function TradeActions({ tradeId, status, iAmRequester, iGiveCount, iRecei
   }
 
   if (status === "ACCEPTED") {
+    const otherLabel = otherHandle ? `@${otherHandle}` : "the other party";
+
+    if (!myConfirmed && !otherConfirmed) {
+      banner = (
+        <div className="notification is-light is-info mb-3">
+          Both of you need to confirm before the trade is finalized. Confirm once you&apos;ve made the swap.
+        </div>
+      );
+      buttons.push(
+        <button
+          key="confirm"
+          onClick={() => run(confirmFinish)}
+          disabled={pending}
+          className={`button is-success ${pending ? "is-loading" : ""}`}
+        >
+          Confirm my side
+        </button>,
+      );
+    } else if (myConfirmed && !otherConfirmed) {
+      banner = (
+        <div className="notification is-warning mb-3">
+          You&apos;ve confirmed. Waiting on {otherLabel} to confirm before cards are moved.
+        </div>
+      );
+      buttons.push(
+        <button
+          key="unconfirm"
+          onClick={() => run(unconfirmFinish)}
+          disabled={pending}
+          className="button is-light"
+        >
+          Undo my confirmation
+        </button>,
+      );
+    } else if (!myConfirmed && otherConfirmed) {
+      banner = (
+        <div className="notification is-warning mb-3">
+          {otherLabel} has confirmed. Confirming will finalize the trade and remove the
+          cards from both HAVE/WANT lists.
+        </div>
+      );
+      buttons.push(
+        <button
+          key="confirm-final"
+          onClick={() =>
+            confirm("Finalize the trade? Cards will be removed from both lists.") &&
+            run(confirmFinish)
+          }
+          disabled={pending}
+          className={`button is-success ${pending ? "is-loading" : ""}`}
+        >
+          Confirm and finish
+        </button>,
+      );
+    }
+
     buttons.push(
-      <button
-        key="finish"
-        onClick={() =>
-          confirm("Mark trade as finished? Cards will be removed from both users' lists.") &&
-          run(finishTrade)
-        }
-        disabled={pending}
-        className={`button is-success ${pending ? "is-loading" : ""}`}
-      >
-        Mark as finished
-      </button>,
       <button
         key="cancel-a"
         onClick={() => confirm("Back out of this accepted trade?") && run(deleteTrade)}
@@ -116,8 +180,9 @@ export function TradeActions({ tradeId, status, iAmRequester, iGiveCount, iRecei
   }
 
   return (
-    <div className="buttons">
-      {buttons}
+    <div>
+      {banner}
+      <div className="buttons">{buttons}</div>
     </div>
   );
 }
