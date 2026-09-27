@@ -4,10 +4,12 @@ import { browseListings } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { GameSlug, ListingKind } from "@prisma/client";
 import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
+import { formatBRL } from "@/lib/money";
+import type { ListingIntent } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { q?: string; game?: string; kind?: string; page?: string };
+type SearchParams = { q?: string; game?: string; kind?: string; intent?: string; page?: string };
 
 const PAGE_SIZE = 48;
 
@@ -20,6 +22,7 @@ export default async function BrowsePage({
   const q = params.q?.trim() || "";
   const game = (params.game as GameSlug | undefined) ?? undefined;
   const kind = (params.kind as ListingKind | undefined) ?? undefined;
+  const intent = (params.intent as ListingIntent | undefined) ?? undefined;
   const page = Math.max(1, Number(params.page) || 1);
 
   const session = await auth();
@@ -28,6 +31,7 @@ export default async function BrowsePage({
     q,
     game,
     kind,
+    intent,
     excludeUserId: session?.user?.id,
     take: PAGE_SIZE,
     skip: (page - 1) * PAGE_SIZE,
@@ -73,6 +77,15 @@ export default async function BrowsePage({
             </div>
           </div>
           <div className="control">
+            <div className="select">
+              <select name="intent" defaultValue={intent ?? ""}>
+                <option value="">Any offer</option>
+                <option value="TRADE">Trade</option>
+                <option value="CASH">Cash</option>
+              </select>
+            </div>
+          </div>
+          <div className="control">
             <button className="button is-primary">Filter</button>
           </div>
           <div className="control is-flex-grow-1 has-text-right">
@@ -101,20 +114,26 @@ export default async function BrowsePage({
                   orientation={l.card.orientation}
                   footer={
                     <div>
-                      <span
-                        className={`tag ${l.kind === "HAVE" ? "is-success" : "is-warning"} is-small`}
-                      >
-                        {l.kind} · qty {l.quantity}
-                        {l.condition ? ` · ${l.condition}` : ""}
-                      </span>
-                      <div className="mt-2">
-                        <Link
-                          href={l.user.handle ? `/u/${l.user.handle}` : "#"}
-                          className="has-text-grey is-size-7"
+                      <div className="tags are-small mb-1" style={{ gap: "0.25rem" }}>
+                        <span
+                          className={`tag ${l.kind === "HAVE" ? "is-success" : "is-warning"} is-small`}
                         >
-                          {l.user.handle ? `@${l.user.handle}` : l.user.name ?? "unnamed"}
-                        </Link>
+                          {l.kind} · qty {l.quantity}
+                          {l.condition ? ` · ${l.condition}` : ""}
+                        </span>
+                        {l.priceCents !== null && (
+                          <span className="tag is-primary is-small">
+                            {formatBRL(l.priceCents)}
+                            {l.offerType === "CASH_ONLY" ? " · cash only" : ""}
+                          </span>
+                        )}
                       </div>
+                      <Link
+                        href={l.user.handle ? `/u/${l.user.handle}` : "#"}
+                        className="has-text-grey is-size-7"
+                      >
+                        {l.user.handle ? `@${l.user.handle}` : l.user.name ?? "unnamed"}
+                      </Link>
                       {l.note && (
                         <div className="is-size-7 has-text-grey mt-1" style={{ lineHeight: 1.3 }}>
                           {l.note}
@@ -132,7 +151,7 @@ export default async function BrowsePage({
           <nav className="pagination is-centered mt-5" role="navigation">
             {page > 1 ? (
               <Link
-                href={{ pathname: "/browse", query: { q, game, kind, page: page - 1 } }}
+                href={{ pathname: "/browse", query: { q, game, kind, intent, page: page - 1 } }}
                 className="pagination-previous"
               >
                 Previous
@@ -144,7 +163,7 @@ export default async function BrowsePage({
             )}
             {page < pages ? (
               <Link
-                href={{ pathname: "/browse", query: { q, game, kind, page: page + 1 } }}
+                href={{ pathname: "/browse", query: { q, game, kind, intent, page: page + 1 } }}
                 className="pagination-next"
               >
                 Next

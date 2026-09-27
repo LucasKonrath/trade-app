@@ -5,6 +5,8 @@ import { auth } from "@/auth";
 import { getTradeForUser } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { TradeActions } from "./trade-actions";
+import { CashEditor } from "./cash-editor";
+import { formatBRL } from "@/lib/money";
 import { TradeStatus, TradeDirection } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +95,27 @@ export default async function TradePage({
             </div>
           </div>
           <p className="has-text-grey is-size-7 mt-3 mb-0">{STATUS_BLURB[trade.status]}</p>
+
+          {(() => {
+            const cash = trade.cashCents;
+            if (!cash) return null;
+            const cashFromMe = iAmRequester ? cash < 0 : cash > 0;
+            const amount = formatBRL(Math.abs(cash));
+            return (
+              <div className="notification is-info is-light mt-3 mb-0 py-2 px-3">
+                <strong>{cashFromMe ? "You pay" : "You receive"} {amount}</strong>{" "}
+                {cashFromMe
+                  ? `to ${other.handle ? "@" + other.handle : "the other party"}`
+                  : `from ${other.handle ? "@" + other.handle : "the other party"}`}
+              </div>
+            );
+          })()}
+
+          {trade.status === "OPEN" && iAmRequester && (
+            <div className="mt-3">
+              <CashEditor tradeId={trade.id} cashCents={trade.cashCents} />
+            </div>
+          )}
         </div>
 
         <div className="columns">

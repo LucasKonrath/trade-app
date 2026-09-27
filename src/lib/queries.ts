@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { GameSlug, ListingKind, Prisma } from "@prisma/client";
+import { GameSlug, ListingKind, OfferType, Prisma } from "@prisma/client";
 import { ENABLED_GAMES } from "@/lib/config";
 
 export type CardSearchArgs = {
@@ -45,10 +45,13 @@ export async function getMyListings(userId: string) {
   });
 }
 
+export type ListingIntent = "TRADE" | "CASH" | "ALL";
+
 export type BrowseArgs = {
   q?: string;
   game?: GameSlug;
   kind?: ListingKind;
+  intent?: ListingIntent;
   excludeUserId?: string;
   take?: number;
   skip?: number;
@@ -58,6 +61,7 @@ export async function browseListings({
   q,
   game,
   kind,
+  intent,
   excludeUserId,
   take = 48,
   skip = 0,
@@ -65,6 +69,8 @@ export async function browseListings({
   const where: Prisma.ListingWhereInput = {};
   if (kind) where.kind = kind;
   if (excludeUserId) where.userId = { not: excludeUserId };
+  if (intent === "TRADE") where.offerType = { in: ["TRADE_ONLY", "TRADE_OR_CASH"] };
+  else if (intent === "CASH") where.offerType = { in: ["CASH_ONLY", "TRADE_OR_CASH"] };
   const gameFilter: GameSlug[] = game && ENABLED_GAMES.includes(game) ? [game] : ENABLED_GAMES;
   where.card = { game: { slug: { in: gameFilter } } };
   if (q && q.trim()) where.card.name = { contains: q.trim(), mode: "insensitive" };
@@ -95,6 +101,7 @@ export async function browseListings({
  * Mutual match: users B where
  *   A.HAVE ∩ B.WANT ≠ ∅   AND   A.WANT ∩ B.HAVE ≠ ∅
  *
+ * Only trade-eligible listings count — cash-only listings are excluded.
  * Returns each candidate with the concrete card ids on each side of the trade.
  */
 export type Match = {
@@ -108,9 +115,10 @@ export type Match = {
 
 export async function findMatches(userId: string): Promise<Match[]> {
   const gameScope = { card: { game: { slug: { in: ENABLED_GAMES } } } };
+  const tradeEligible = { offerType: { in: ["TRADE_ONLY", "TRADE_OR_CASH"] as OfferType[] } };
 
   const myListings = await prisma.listing.findMany({
-    where: { userId, ...gameScope },
+    where: { userId, ...gameScope, ...tradeEligible },
     select: { cardId: true, kind: true },
   });
 
@@ -119,15 +127,27 @@ export async function findMatches(userId: string): Promise<Match[]> {
 
   if (myHaveIds.length === 0 || myWantIds.length === 0) return [];
 
-  // Users who WANT something I HAVE.
+  // Users who WANT something I HAVE (trade-eligible only).
   const theyWant = await prisma.listing.findMany({
-    where: { kind: "WANT", cardId: { in: myHaveIds }, userId: { not: userId }, ...gameScope },
+    where: {
+      kind: "WANT",
+      cardId: { in: myHaveIds },
+      userId: { not: userId },
+      ...gameScope,
+      ...tradeEligible,
+    },
     select: { userId: true, cardId: true },
   });
 
-  // Users who HAVE something I WANT.
+  // Users who HAVE something I WANT (trade-eligible only).
   const theyHave = await prisma.listing.findMany({
-    where: { kind: "HAVE", cardId: { in: myWantIds }, userId: { not: userId }, ...gameScope },
+    where: {
+      kind: "HAVE",
+      cardId: { in: myWantIds },
+      userId: { not: userId },
+      ...gameScope,
+      ...tradeEligible,
+    },
     select: { userId: true, cardId: true },
   });
 

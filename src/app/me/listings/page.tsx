@@ -86,6 +86,8 @@ function Section({
                     quantity={l.quantity}
                     condition={l.condition}
                     note={l.note}
+                    offerType={l.offerType}
+                    priceCents={l.priceCents}
                   />
                 }
               />

@@ -3,6 +3,8 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { CardTile } from "@/components/card-tile";
 import { ENABLED_GAMES } from "@/lib/config";
+import { formatBRL } from "@/lib/money";
+import type { OfferType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +84,8 @@ function Section({
     quantity: number;
     condition: string | null;
     note: string | null;
+    offerType: OfferType;
+    priceCents: number | null;
     card: {
       name: string;
       imageUrl: string | null;
@@ -114,11 +118,21 @@ function Section({
                 gameSlug={l.card.game.slug}
                 orientation={l.card.orientation}
                 footer={
-                  <div className="is-size-7 has-text-grey">
-                    Qty {l.quantity}
-                    {l.condition ? ` · ${l.condition}` : ""}
+                  <div className="is-size-7">
+                    <div className="has-text-grey">
+                      Qty {l.quantity}
+                      {l.condition ? ` · ${l.condition}` : ""}
+                    </div>
+                    {l.priceCents !== null && (
+                      <div className="mt-1">
+                        <span className="tag is-primary is-small">
+                          {formatBRL(l.priceCents)}
+                          {l.offerType === "CASH_ONLY" ? " · cash only" : ""}
+                        </span>
+                      </div>
+                    )}
                     {l.note && (
-                      <div style={{ lineHeight: 1.3 }} className="mt-1">
+                      <div style={{ lineHeight: 1.3 }} className="mt-1 has-text-grey">
                         {l.note}
                       </div>
                     )}

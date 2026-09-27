@@ -5,18 +5,26 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ListingKind, CardCondition } from "@prisma/client";
+import { ListingKind, CardCondition, OfferType } from "@prisma/client";
 
 const ConditionEnum = z.nativeEnum(CardCondition);
 const KindEnum = z.nativeEnum(ListingKind);
+const OfferTypeEnum = z.nativeEnum(OfferType);
 
-const UpsertSchema = z.object({
-  cardId: z.string().cuid(),
-  kind: KindEnum,
-  quantity: z.coerce.number().int().min(1).max(999).default(1),
-  condition: ConditionEnum.optional(),
-  note: z.string().max(280).optional(),
-});
+const UpsertSchema = z
+  .object({
+    cardId: z.string().cuid(),
+    kind: KindEnum,
+    quantity: z.coerce.number().int().min(1).max(999).default(1),
+    condition: ConditionEnum.optional(),
+    note: z.string().max(280).optional(),
+    offerType: OfferTypeEnum.default(OfferType.TRADE_ONLY),
+    priceCents: z.coerce.number().int().min(0).max(10_000_000).optional(),
+  })
+  .refine(
+    (v) => v.offerType === OfferType.TRADE_ONLY || (v.priceCents !== undefined && v.priceCents > 0),
+    { message: "Price is required for cash listings", path: ["priceCents"] },
+  );
 
 export async function upsertListing(formData: FormData) {
   const session = await auth();
@@ -24,15 +32,18 @@ export async function upsertListing(formData: FormData) {
   if (!session.user.handle) redirect("/onboarding");
 
   const raw = Object.fromEntries(formData);
-  // Zod converts empty strings to undefined for optional fields
   const cleaned = {
     cardId: raw.cardId,
     kind: raw.kind,
     quantity: raw.quantity || 1,
     condition: raw.condition || undefined,
     note: raw.note || undefined,
+    offerType: raw.offerType || OfferType.TRADE_ONLY,
+    priceCents: raw.priceCents ? Number(raw.priceCents) : undefined,
   };
   const parsed = UpsertSchema.parse(cleaned);
+
+  const priceCents = parsed.offerType === OfferType.TRADE_ONLY ? null : parsed.priceCents ?? null;
 
   await prisma.listing.upsert({
     where: {
@@ -46,6 +57,8 @@ export async function upsertListing(formData: FormData) {
       quantity: parsed.quantity,
       condition: parsed.condition ?? null,
       note: parsed.note ?? null,
+      offerType: parsed.offerType,
+      priceCents,
     },
     create: {
       userId: session.user.id,
@@ -54,6 +67,8 @@ export async function upsertListing(formData: FormData) {
       quantity: parsed.quantity,
       condition: parsed.condition ?? null,
       note: parsed.note ?? null,
+      offerType: parsed.offerType,
+      priceCents,
     },
   });
 

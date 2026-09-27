@@ -24,15 +24,18 @@ const CreateTradeSchema = z.object({
   responderId: z.string().cuid(),
   iGiveIds: z.array(z.string().cuid()).default([]),
   iReceiveIds: z.array(z.string().cuid()).default([]),
+  cashCents: z.number().int().optional(),
 });
 
 /**
  * Create an OPEN trade with items prefilled. Called from /matches.
+ * Optionally include a cashCents amount for sale/purchase.
  */
 export async function createTrade(input: {
   responderId: string;
   iGiveIds: string[];
   iReceiveIds: string[];
+  cashCents?: number;
 }) {
   const me = await currentUser();
   const parsed = CreateTradeSchema.parse(input);
@@ -46,6 +49,7 @@ export async function createTrade(input: {
       requesterId: me.id,
       responderId: parsed.responderId,
       status: TradeStatus.OPEN,
+      cashCents: parsed.cashCents ?? null,
       items: {
         createMany: {
           data: [
@@ -59,6 +63,32 @@ export async function createTrade(input: {
 
   revalidatePath("/trades");
   redirect(`/trades/${trade.id}`);
+}
+
+const SetCashSchema = z.object({
+  tradeId: z.string().cuid(),
+  cashCents: z.number().int().nullable(),
+});
+
+/**
+ * Update the cash amount on an OPEN trade. Only requester.
+ * Positive = responder pays requester. Negative = requester pays responder.
+ */
+export async function setTradeCash(input: { tradeId: string; cashCents: number | null }) {
+  const me = await currentUser();
+  const parsed = SetCashSchema.parse(input);
+
+  const trade = await prisma.trade.findUnique({ where: { id: parsed.tradeId } });
+  if (!trade) throw new Error("Trade not found");
+  if (trade.requesterId !== me.id) throw new Error("Only the requester can edit trade cash");
+  if (trade.status !== TradeStatus.OPEN) throw new Error("Trade is no longer editable");
+
+  await prisma.trade.update({
+    where: { id: parsed.tradeId },
+    data: { cashCents: parsed.cashCents },
+  });
+
+  revalidatePath(`/trades/${parsed.tradeId}`);
 }
 
 const AddItemSchema = z.object({
@@ -130,8 +160,11 @@ export async function sendTrade(formData: FormData) {
 
   const gives = trade.items.filter((i) => i.direction === TradeDirection.FROM_REQUESTER).length;
   const receives = trade.items.filter((i) => i.direction === TradeDirection.FROM_RESPONDER).length;
-  if (gives === 0 || receives === 0) {
-    throw new Error("Both sides of the trade must have at least one card");
+  const cash = trade.cashCents ?? 0;
+  const requesterProvides = gives > 0 || cash < 0;
+  const responderProvides = receives > 0 || cash > 0;
+  if (!requesterProvides || !responderProvides) {
+    throw new Error("Both parties must contribute cards or cash");
   }
 
   await prisma.trade.update({
