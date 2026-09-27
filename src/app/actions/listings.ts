@@ -77,6 +77,95 @@ export async function upsertListing(formData: FormData) {
   revalidatePath("/matches");
 }
 
+const PriceSchema = z.object({
+  cardId: z.string().cuid(),
+  kind: KindEnum,
+  priceCents: z.coerce.number().int().min(1).max(10_000_000),
+});
+
+/**
+ * One-shot cash add for /cards tiles.
+ * - If no listing exists → create CASH_ONLY with the price
+ * - If TRADE_ONLY exists → upgrade to TRADE_OR_CASH with the price
+ * - If CASH_ONLY / TRADE_OR_CASH exists → just update the price
+ */
+export async function addPriceToListing(input: {
+  cardId: string;
+  kind: ListingKind;
+  priceCents: number;
+}) {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+  if (!session.user.handle) redirect("/onboarding");
+
+  const { cardId, kind, priceCents } = PriceSchema.parse(input);
+
+  const existing = await prisma.listing.findUnique({
+    where: { userId_cardId_kind: { userId: session.user.id, cardId, kind } },
+  });
+
+  const nextOfferType: OfferType = existing
+    ? existing.offerType === OfferType.TRADE_ONLY
+      ? OfferType.TRADE_OR_CASH
+      : existing.offerType
+    : OfferType.CASH_ONLY;
+
+  await prisma.listing.upsert({
+    where: { userId_cardId_kind: { userId: session.user.id, cardId, kind } },
+    update: { priceCents, offerType: nextOfferType },
+    create: {
+      userId: session.user.id,
+      cardId,
+      kind,
+      offerType: nextOfferType,
+      priceCents,
+      quantity: 1,
+    },
+  });
+
+  revalidatePath("/cards");
+  revalidatePath("/me/listings");
+  revalidatePath("/browse");
+  revalidatePath("/matches");
+}
+
+const RemovePriceSchema = z.object({
+  cardId: z.string().cuid(),
+  kind: KindEnum,
+});
+
+/**
+ * Inverse of addPriceToListing.
+ * - CASH_ONLY listing → delete entirely (nothing left to keep)
+ * - TRADE_OR_CASH → drop the price, keep as TRADE_ONLY
+ * - Anything else → no-op
+ */
+export async function removePriceFromListing(input: { cardId: string; kind: ListingKind }) {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+
+  const { cardId, kind } = RemovePriceSchema.parse(input);
+
+  const existing = await prisma.listing.findUnique({
+    where: { userId_cardId_kind: { userId: session.user.id, cardId, kind } },
+  });
+  if (!existing) return;
+
+  if (existing.offerType === OfferType.CASH_ONLY) {
+    await prisma.listing.delete({ where: { id: existing.id } });
+  } else if (existing.offerType === OfferType.TRADE_OR_CASH) {
+    await prisma.listing.update({
+      where: { id: existing.id },
+      data: { offerType: OfferType.TRADE_ONLY, priceCents: null },
+    });
+  }
+
+  revalidatePath("/cards");
+  revalidatePath("/me/listings");
+  revalidatePath("/browse");
+  revalidatePath("/matches");
+}
+
 const DeleteSchema = z.object({ listingId: z.string().cuid() });
 
 export async function deleteListing(formData: FormData) {
