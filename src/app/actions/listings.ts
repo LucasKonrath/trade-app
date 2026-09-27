@@ -171,22 +171,24 @@ const SaveListingSchema = z.object({
   kind: KindEnum,
   priceCents: z.number().int().min(1).max(10_000_000).nullable(),
   acceptTrades: z.boolean(),
+  acceptCash: z.boolean(),
 });
 
 /**
  * Unified save for the compact card-tile chip.
- * offerType is derived from (acceptTrades, price):
- *   accept + no price   → TRADE_ONLY
- *   accept + price      → TRADE_OR_CASH
- *   no accept + price   → CASH_ONLY
- *   no accept + no price → error (nothing to save)
- * Existing listing's quantity/condition/note are preserved.
+ * offerType derives from the two boolean intents:
+ *   trades + cash → TRADE_OR_CASH
+ *   trades only  → TRADE_ONLY
+ *   cash only    → CASH_ONLY (priceCents may be null → "open to offers")
+ *   neither      → error
+ * Price is dropped when !acceptCash.
  */
 export async function saveListing(input: {
   cardId: string;
   kind: ListingKind;
   priceCents: number | null;
   acceptTrades: boolean;
+  acceptCash: boolean;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/signin");
@@ -194,13 +196,18 @@ export async function saveListing(input: {
 
   const parsed = SaveListingSchema.parse(input);
 
-  // No trade, no price → still valid: means "cash only, price negotiable" (make me an offer).
+  if (!parsed.acceptTrades && !parsed.acceptCash) {
+    throw new Error("Pick at least one option");
+  }
+
   const offerType: OfferType =
-    parsed.acceptTrades && parsed.priceCents != null
+    parsed.acceptTrades && parsed.acceptCash
       ? OfferType.TRADE_OR_CASH
       : parsed.acceptTrades
         ? OfferType.TRADE_ONLY
         : OfferType.CASH_ONLY;
+
+  const priceCents = parsed.acceptCash ? parsed.priceCents : null;
 
   await prisma.listing.upsert({
     where: {
@@ -210,13 +217,13 @@ export async function saveListing(input: {
         kind: parsed.kind,
       },
     },
-    update: { offerType, priceCents: parsed.priceCents },
+    update: { offerType, priceCents },
     create: {
       userId: session.user.id,
       cardId: parsed.cardId,
       kind: parsed.kind,
       offerType,
-      priceCents: parsed.priceCents,
+      priceCents,
       quantity: 1,
     },
   });
