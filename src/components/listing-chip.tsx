@@ -164,7 +164,7 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
             <input
               type="text"
               inputMode="decimal"
-              placeholder={suggestedPriceCents ? formatBRL(suggestedPriceCents) : "12,50"}
+              placeholder={suggestedPriceCents ? formatBRL(suggestedPriceCents) : ""}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               onKeyDown={(e) => {
