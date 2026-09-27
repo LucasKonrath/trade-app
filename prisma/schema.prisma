@@ -19,9 +19,11 @@ model User {
   handle        String?   @unique
   createdAt     DateTime  @default(now())
 
-  accounts Account[]
-  sessions Session[]
-  listings Listing[]
+  accounts        Account[]
+  sessions        Session[]
+  listings        Listing[]
+  requesterTrades Trade[]   @relation("RequesterTrades")
+  responderTrades Trade[]   @relation("ResponderTrades")
 }
 
 model Account {
@@ -112,9 +114,10 @@ model Card {
   rarity     String?
   imageUrl   String?
 
-  game     Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  set      CardSet   @relation(fields: [setId], references: [id], onDelete: Cascade)
-  listings Listing[]
+  game       Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  set        CardSet     @relation(fields: [setId], references: [id], onDelete: Cascade)
+  listings   Listing[]
+  tradeItems TradeItem[]
 
   @@unique([gameId, externalId])
   @@index([gameId, name])
@@ -138,4 +141,49 @@ model Listing {
   @@unique([userId, cardId, kind])
   @@index([cardId, kind])
   @@index([userId, kind])
+}
+
+// ---------- Trade lifecycle ----------
+
+enum TradeStatus {
+  OPEN
+  REQUESTED
+  ACCEPTED
+  FINISHED
+}
+
+enum TradeDirection {
+  FROM_REQUESTER
+  FROM_RESPONDER
+}
+
+model Trade {
+  id          String      @id @default(cuid())
+  requesterId String
+  responderId String
+  status      TradeStatus @default(OPEN)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  finishedAt  DateTime?
+
+  requester User        @relation("RequesterTrades", fields: [requesterId], references: [id], onDelete: Cascade)
+  responder User        @relation("ResponderTrades", fields: [responderId], references: [id], onDelete: Cascade)
+  items     TradeItem[]
+
+  @@index([requesterId, status])
+  @@index([responderId, status])
+}
+
+model TradeItem {
+  id        String         @id @default(cuid())
+  tradeId   String
+  cardId    String
+  direction TradeDirection
+  quantity  Int            @default(1)
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([tradeId, cardId, direction])
+  @@index([tradeId])
 }

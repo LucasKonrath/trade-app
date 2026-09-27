@@ -169,6 +169,43 @@ export async function findMatches(userId: string): Promise<Match[]> {
   return matches;
 }
 
+export async function getMyTrades(userId: string) {
+  return prisma.trade.findMany({
+    where: {
+      OR: [{ requesterId: userId }, { responderId: userId }],
+    },
+    include: {
+      requester: { select: { id: true, handle: true, name: true, image: true } },
+      responder: { select: { id: true, handle: true, name: true, image: true } },
+      items: { select: { id: true, direction: true, cardId: true } },
+    },
+    orderBy: [{ updatedAt: "desc" }],
+  });
+}
+
+export async function getTradeForUser(tradeId: string, userId: string) {
+  const trade = await prisma.trade.findUnique({
+    where: { id: tradeId },
+    include: {
+      requester: { select: { id: true, handle: true, name: true, image: true } },
+      responder: { select: { id: true, handle: true, name: true, image: true } },
+      items: {
+        include: {
+          card: {
+            include: {
+              set: { select: { name: true, code: true } },
+              game: { select: { slug: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!trade) return null;
+  if (trade.requesterId !== userId && trade.responderId !== userId) return null;
+  return trade;
+}
+
 export async function getCardsByIds(ids: string[]) {
   if (ids.length === 0) return [];
   return prisma.card.findMany({

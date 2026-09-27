@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { findMatches, getCardsByIds } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
+import { ProposeTradeButton } from "./propose-button";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,13 @@ export default async function MatchesPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                  <div className="level-right">
+                    <ProposeTradeButton
+                      responderId={m.userId}
+                      iGiveIds={m.theyWantIds}
+                      iReceiveIds={m.iWantIds}
+                    />
                   </div>
                 </div>
 

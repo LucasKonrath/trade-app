@@ -26,6 +26,9 @@ export async function Nav() {
                 <Link href="/matches" className="navbar-item">
                   Matches
                 </Link>
+                <Link href="/trades" className="navbar-item">
+                  Trades
+                </Link>
                 <Link href="/me/listings" className="navbar-item">
                   My listings
                 </Link>

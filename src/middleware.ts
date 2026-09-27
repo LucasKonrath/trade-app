@@ -12,7 +12,10 @@ export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   const requiresAuth =
-    path.startsWith("/me") || path.startsWith("/matches") || path === "/onboarding";
+    path.startsWith("/me") ||
+    path.startsWith("/matches") ||
+    path.startsWith("/trades") ||
+    path === "/onboarding";
 
   if (requiresAuth && !hasSession) {
     return NextResponse.redirect(new URL("/signin", req.nextUrl));
@@ -22,5 +25,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/me/:path*", "/matches/:path*", "/onboarding"],
+  matcher: ["/me/:path*", "/matches/:path*", "/trades/:path*", "/onboarding"],
 };
