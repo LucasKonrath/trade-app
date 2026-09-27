@@ -7,6 +7,7 @@ import { ListToggle } from "@/components/list-toggle";
 import { PriceChip } from "@/components/price-chip";
 import { GameSlug } from "@prisma/client";
 import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
+import { formatBRL } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +34,11 @@ export default async function CardsPage({
     skip: (page - 1) * PAGE_SIZE,
   });
 
+  const cardIds = items.map((c) => c.id);
+
   const myListings = session?.user
     ? await prisma.listing.findMany({
-        where: { userId: session.user.id, cardId: { in: items.map((c) => c.id) } },
+        where: { userId: session.user.id, cardId: { in: cardIds } },
         select: { id: true, cardId: true, kind: true, quantity: true, priceCents: true },
       })
     : [];
@@ -46,6 +49,30 @@ export default async function CardsPage({
     const bucket = byCard.get(l.cardId) ?? {};
     bucket[l.kind] = { id: l.id, quantity: l.quantity, priceCents: l.priceCents };
     byCard.set(l.cardId, bucket);
+  }
+
+  // Market stats: how many HAVE + WANT listings from other users per card, and cheapest ask.
+  const marketRows = await prisma.listing.groupBy({
+    by: ["cardId", "kind"],
+    where: {
+      cardId: { in: cardIds },
+      ...(session?.user ? { userId: { not: session.user.id } } : {}),
+    },
+    _count: { _all: true },
+    _min: { priceCents: true },
+  });
+
+  type MarketStat = { sellers: number; buyers: number; cheapestAskCents: number | null };
+  const marketByCard = new Map<string, MarketStat>();
+  for (const row of marketRows) {
+    const stat = marketByCard.get(row.cardId) ?? { sellers: 0, buyers: 0, cheapestAskCents: null };
+    if (row.kind === "HAVE") {
+      stat.sellers = row._count._all;
+      stat.cheapestAskCents = row._min.priceCents;
+    } else {
+      stat.buyers = row._count._all;
+    }
+    marketByCard.set(row.cardId, stat);
   }
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -94,6 +121,7 @@ export default async function CardsPage({
           <div className="columns is-mobile is-multiline is-variable is-3">
             {items.map((c) => {
               const state = byCard.get(c.id) ?? {};
+              const market = marketByCard.get(c.id) ?? { sellers: 0, buyers: 0, cheapestAskCents: null };
               return (
                 <div key={c.id} className="column is-2-desktop is-one-third-tablet is-half-mobile">
                   <CardTile
@@ -106,26 +134,48 @@ export default async function CardsPage({
                     orientation={c.orientation}
                     href={`/cards/${c.id}`}
                     footer={
-                      session?.user ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-                          <ListToggle cardId={c.id} existing={state.HAVE ?? null} kind="HAVE" />
-                          <PriceChip
-                            cardId={c.id}
-                            kind="HAVE"
-                            currentPriceCents={state.HAVE?.priceCents ?? null}
-                          />
-                          <ListToggle cardId={c.id} existing={state.WANT ?? null} kind="WANT" />
-                          <PriceChip
-                            cardId={c.id}
-                            kind="WANT"
-                            currentPriceCents={state.WANT?.priceCents ?? null}
-                          />
-                        </div>
-                      ) : (
-                        <Link href="/signin" className="button is-light is-small is-fullwidth">
-                          Sign in to list
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                        <Link
+                          href={`/cards/${c.id}`}
+                          className="tags are-small is-marginless"
+                          style={{ gap: "0.25rem", marginBottom: 0, textDecoration: "none" }}
+                        >
+                          <span
+                            className={`tag is-small ${market.sellers > 0 ? "is-success" : "is-light"}`}
+                          >
+                            {market.sellers > 0
+                              ? `${market.sellers} seller${market.sellers === 1 ? "" : "s"}${
+                                  market.cheapestAskCents ? ` · from ${formatBRL(market.cheapestAskCents)}` : ""
+                                }`
+                              : "No sellers"}
+                          </span>
+                          {market.buyers > 0 && (
+                            <span className="tag is-small is-warning">
+                              {market.buyers} buyer{market.buyers === 1 ? "" : "s"}
+                            </span>
+                          )}
                         </Link>
-                      )
+                        {session?.user ? (
+                          <>
+                            <ListToggle cardId={c.id} existing={state.HAVE ?? null} kind="HAVE" />
+                            <PriceChip
+                              cardId={c.id}
+                              kind="HAVE"
+                              currentPriceCents={state.HAVE?.priceCents ?? null}
+                            />
+                            <ListToggle cardId={c.id} existing={state.WANT ?? null} kind="WANT" />
+                            <PriceChip
+                              cardId={c.id}
+                              kind="WANT"
+                              currentPriceCents={state.WANT?.priceCents ?? null}
+                            />
+                          </>
+                        ) : (
+                          <Link href="/signin" className="button is-light is-small is-fullwidth">
+                            Sign in to list
+                          </Link>
+                        )}
+                      </div>
                     }
                   />
                 </div>
