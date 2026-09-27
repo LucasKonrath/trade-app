@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth, signOut, signIn } from "@/auth";
+import { NavBurger } from "./nav-burger";
 
 export async function Nav() {
   const session = await auth();
@@ -13,7 +14,7 @@ export async function Nav() {
           </Link>
         </div>
 
-        <div className="navbar-menu is-active">
+        <NavBurger>
           <div className="navbar-start">
             <Link href="/cards" className="navbar-item">
               Cards
@@ -47,7 +48,7 @@ export async function Nav() {
                   className="is-flex is-align-items-center"
                   style={{ gap: "0.75rem" }}
                 >
-                  <span className="has-text-grey">
+                  <span className="has-text-grey-light is-size-7">
                     {session.user.handle ? `@${session.user.handle}` : session.user.email}
                   </span>
                   <button className="button is-light is-small">Sign out</button>
@@ -64,7 +65,7 @@ export async function Nav() {
               )}
             </div>
           </div>
-        </div>
+        </NavBurger>
       </div>
     </nav>
   );

@@ -43,7 +43,7 @@ export default async function BrowsePage({
           What everyone else at the LGS is trading.
         </p>
 
-        <form action="/browse" className="field is-grouped is-align-items-center mb-5">
+        <form action="/browse" className="filter-row field is-grouped is-align-items-center mb-5">
           <div className="control is-expanded" style={{ maxWidth: 320 }}>
             <input
               name="q"

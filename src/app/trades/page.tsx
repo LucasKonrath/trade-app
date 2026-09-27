@@ -56,7 +56,7 @@ function Section({
       {trades.length === 0 ? (
         <div className="notification is-light">{empty}</div>
       ) : (
-        <div className="box p-0">
+        <div className="box p-0 trades-table-wrap">
           <table className="table is-fullwidth is-hoverable mb-0">
             <thead>
               <tr>

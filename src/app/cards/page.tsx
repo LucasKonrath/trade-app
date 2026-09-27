@@ -59,7 +59,7 @@ export default async function CardsPage({
           Search the catalog and mark cards as HAVE or WANT.
         </p>
 
-        <form action="/cards" className="field is-grouped is-align-items-center mb-5">
+        <form action="/cards" className="filter-row field is-grouped is-align-items-center mb-5">
           <div className="control is-expanded" style={{ maxWidth: 320 }}>
             <input
               name="q"

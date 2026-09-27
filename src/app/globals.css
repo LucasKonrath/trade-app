@@ -61,6 +61,75 @@
   color: var(--brand-navy);
 }
 
+/* Filter rows: horizontal on tablet+, stack full-width on mobile */
+.filter-row {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media screen and (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .filter-row > .control {
+    width: 100%;
+    max-width: none !important;
+    flex-basis: 100%;
+  }
+  .filter-row .select,
+  .filter-row .select select,
+  .filter-row input {
+    width: 100%;
+  }
+  .filter-row .has-text-right {
+    text-align: left !important;
+  }
+  .section {
+    padding: 1.5rem 1rem;
+  }
+  .hero.is-medium .hero-body {
+    padding: 3rem 1.25rem;
+  }
+  .hero.brand-hero .title.is-2 {
+    font-size: 2rem;
+  }
+  .hero.brand-hero .subtitle.is-5 {
+    font-size: 1rem;
+  }
+  .brand-navbar .navbar-menu {
+    background-color: var(--brand-navy-dark);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    padding: 0.5rem 0;
+  }
+  .brand-navbar .navbar-menu .navbar-item {
+    color: hsl(0, 0%, 92%);
+  }
+  .brand-navbar .navbar-burger {
+    color: #fff;
+  }
+  /* Trade detail: give/receive already stack via columns; tighten the header */
+  .trade-header .level-right {
+    margin-top: 0.75rem;
+  }
+  /* Match cards: propose button drops below on mobile */
+  .match-header .level-right {
+    margin-top: 0.75rem;
+    align-self: stretch;
+  }
+  .match-header .level-right .button {
+    width: 100%;
+  }
+}
+
+/* Trade list table: never let it break the viewport */
+.trades-table-wrap {
+  overflow-x: auto;
+}
+.trades-table-wrap table {
+  white-space: nowrap;
+}
+
 body {
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex;

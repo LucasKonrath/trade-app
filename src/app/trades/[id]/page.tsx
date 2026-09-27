@@ -61,7 +61,7 @@ export default async function TradePage({
         </nav>
 
         <div className="box mb-5">
-          <div className="level is-mobile">
+          <div className="level trade-header">
             <div className="level-left">
               <div className="level-item">
                 {other.image && (

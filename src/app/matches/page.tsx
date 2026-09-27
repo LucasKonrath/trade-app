@@ -43,7 +43,7 @@ export default async function MatchesPage() {
           <div>
             {matches.map((m) => (
               <div key={m.userId} className="box mb-5">
-                <div className="level is-mobile mb-4">
+                <div className="level match-header mb-4">
                   <div className="level-left">
                     <div className="level-item">
                       {m.image && (

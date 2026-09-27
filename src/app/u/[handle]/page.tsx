@@ -41,7 +41,7 @@ export default async function ProfilePage({
   return (
     <section className="section">
       <div className="container">
-        <div className="level is-mobile mb-5">
+        <div className="level mb-5">
           <div className="level-left">
             {user.image && (
               <figure className="image is-64x64 mr-4">
