@@ -3,6 +3,8 @@ import { Geist } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import { Nav } from "@/components/nav";
+import { getLocale } from "@/lib/i18n/server";
+import { LocaleProvider } from "@/lib/i18n/client";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,14 +16,17 @@ export const metadata: Metadata = {
   description: "Trade TCG cards with players at your LGS",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getLocale();
   return (
-    <html lang="en" className={geistSans.variable}>
+    <html lang={locale} className={geistSans.variable}>
       <body suppressHydrationWarning>
-        <SessionProvider>
-          <Nav />
-          <main className="page">{children}</main>
-        </SessionProvider>
+        <LocaleProvider locale={locale}>
+          <SessionProvider>
+            <Nav />
+            <main className="page">{children}</main>
+          </SessionProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

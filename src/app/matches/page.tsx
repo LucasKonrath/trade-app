@@ -7,11 +7,12 @@ import { CardTile } from "@/components/card-tile";
 import { ProposeTradeButton } from "./propose-button";
 import { ProposeListingButton } from "@/components/propose-listing-button";
 import { formatBRL } from "@/lib/money";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
 
@@ -31,20 +32,16 @@ export default async function MatchesPage() {
   return (
     <section className="section">
       <div className="container">
-        <h1 className="title is-3">Matches</h1>
-        <p className="subtitle is-6 has-text-grey">
-          Trade partners and sellers matching your lists.
-        </p>
+        <h1 className="title is-3">{t("matches.title")}</h1>
+        <p className="subtitle is-6 has-text-grey">{t("matches.subtitle")}</p>
 
         <h2 className="title is-5 mt-5">
-          <span className="tag is-info mr-2">Cash</span>
-          Sellers at or below your buy price
+          <span className="tag is-info mr-2">{t("matches.cashTagLabel")}</span>
+          {t("matches.cashSectionTitle")}
           <span className="has-text-grey is-size-6 ml-2">({cashMatches.length})</span>
         </h2>
         {cashMatches.length === 0 ? (
-          <div className="notification is-light">
-            No sellers within your buy budget. Set a price on a WANT listing and check back — anyone selling that card for that price or less will show up here.
-          </div>
+          <div className="notification is-light">{t("matches.cashEmpty")}</div>
         ) : (
           <div className="mb-6">
             {cashMatches.map((m) => (
@@ -59,19 +56,20 @@ export default async function MatchesPage() {
                       rarity={m.card.rarity}
                       gameSlug={m.card.game.slug}
                       orientation={m.card.orientation}
+                      href={`/cards/${m.card.id}`}
                     />
                   </div>
                   <div className="column">
                     <p className="is-size-7 has-text-grey mb-3">
-                      Your max: <strong>{formatBRL(m.myMaxCents)}</strong>
+                      {t("matches.yourMax")} <strong>{formatBRL(m.myMaxCents)}</strong>
                     </p>
                     <div className="table-container">
                       <table className="table is-fullwidth is-narrow is-hoverable">
                         <thead>
                           <tr>
-                            <th>Seller</th>
-                            <th>Price</th>
-                            <th>Condition</th>
+                            <th>{t("matches.seller")}</th>
+                            <th>{t("matches.price")}</th>
+                            <th>{t("matches.condition")}</th>
                             <th />
                           </tr>
                         </thead>
@@ -114,18 +112,17 @@ export default async function MatchesPage() {
         )}
 
         <h2 className="title is-5 mt-6">
-          <span className="tag is-warning mr-2">Trade</span>
-          Two-way trade matches
+          <span className="tag is-warning mr-2">{t("matches.tradeTagLabel")}</span>
+          {t("matches.tradeSectionTitle")}
           <span className="has-text-grey is-size-6 ml-2">({matches.length})</span>
         </h2>
 
         {matches.length === 0 ? (
           <div className="notification is-light">
-            No trade matches yet. Add cards to your{" "}
+            {t("matches.tradeEmpty")}{" "}
             <Link href="/me/listings" className="has-text-link">
-              HAVE and WANT lists
+              {t("myListings.title")}
             </Link>
-            .
           </div>
         ) : (
           <div>
@@ -153,8 +150,12 @@ export default async function MatchesPage() {
                           {m.handle ? `@${m.handle}` : m.name ?? "unnamed"}
                         </Link>
                         <div className="is-size-7 has-text-grey">
-                          {m.theyWantIds.length} card{m.theyWantIds.length === 1 ? "" : "s"} you have they want ·{" "}
-                          {m.iWantIds.length} card{m.iWantIds.length === 1 ? "" : "s"} they have you want
+                          {t("matches.cardsYouHaveTheyWant", {
+                            count: m.theyWantIds.length,
+                            plural: m.theyWantIds.length === 1 ? "" : "s",
+                            countB: m.iWantIds.length,
+                            pluralB: m.iWantIds.length === 1 ? "" : "s",
+                          })}
                         </div>
                       </div>
                     </div>
@@ -170,13 +171,16 @@ export default async function MatchesPage() {
 
                 <div className="columns">
                   <div className="column">
-                    <h3 className="subtitle is-6">You give →</h3>
+                    <h3 className="subtitle is-6">{t("matches.youGive")}</h3>
                     <div className="columns is-mobile is-multiline is-variable is-2">
                       {m.theyWantIds.map((id) => {
                         const c = cardById.get(id);
                         if (!c) return null;
                         return (
-                          <div key={id} className="column is-one-third-desktop is-half-tablet is-half-mobile">
+                          <div
+                            key={id}
+                            className="column is-one-third-desktop is-half-tablet is-half-mobile"
+                          >
                             <CardTile
                               name={c.name}
                               imageUrl={c.imageUrl}
@@ -185,6 +189,7 @@ export default async function MatchesPage() {
                               rarity={c.rarity}
                               gameSlug={c.game.slug}
                               orientation={c.orientation}
+                              href={`/cards/${c.id}`}
                             />
                           </div>
                         );
@@ -192,13 +197,16 @@ export default async function MatchesPage() {
                     </div>
                   </div>
                   <div className="column">
-                    <h3 className="subtitle is-6">← You receive</h3>
+                    <h3 className="subtitle is-6">{t("matches.youReceive")}</h3>
                     <div className="columns is-mobile is-multiline is-variable is-2">
                       {m.iWantIds.map((id) => {
                         const c = cardById.get(id);
                         if (!c) return null;
                         return (
-                          <div key={id} className="column is-one-third-desktop is-half-tablet is-half-mobile">
+                          <div
+                            key={id}
+                            className="column is-one-third-desktop is-half-tablet is-half-mobile"
+                          >
                             <CardTile
                               name={c.name}
                               imageUrl={c.imageUrl}
@@ -207,6 +215,7 @@ export default async function MatchesPage() {
                               rarity={c.rarity}
                               gameSlug={c.game.slug}
                               orientation={c.orientation}
+                              href={`/cards/${c.id}`}
                             />
                           </div>
                         );

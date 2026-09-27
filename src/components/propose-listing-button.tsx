@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { createTrade } from "@/app/actions/trades";
+import { useT } from "@/lib/i18n/client";
 import type { ListingKind, OfferType } from "@prisma/client";
 
 type Props = {
@@ -13,13 +14,6 @@ type Props = {
   disabled?: boolean;
 };
 
-/**
- * Starts a trade with the listing owner as responder. The card is put on the
- * appropriate side (their HAVE → they give; their WANT → I give). If the
- * listing has a cash price, it becomes the trade's cashCents in the right
- * direction. The requester can edit everything on the resulting OPEN trade
- * before sending.
- */
 export function ProposeListingButton({
   ownerId,
   cardId,
@@ -29,30 +23,26 @@ export function ProposeListingButton({
   disabled,
 }: Props) {
   const [pending, startTransition] = useTransition();
+  const t = useT();
 
   const label =
     offerType === "CASH_ONLY"
       ? kind === "HAVE"
-        ? "Buy"
-        : "Sell"
+        ? t("propose.buy")
+        : t("propose.sell")
       : offerType === "TRADE_OR_CASH"
         ? kind === "HAVE"
-          ? "Trade or buy"
-          : "Trade or sell"
+          ? t("propose.tradeOrBuy")
+          : t("propose.tradeOrSell")
         : kind === "HAVE"
-          ? "Propose trade"
-          : "Offer to trade";
+          ? t("propose.proposeTrade")
+          : t("propose.offerToTrade");
 
   const onClick = () => {
     startTransition(async () => {
       try {
-        // HAVE listing: they give the card to me.
-        // WANT listing: I give the card to them.
         const iGiveIds = kind === "WANT" ? [cardId] : [];
         const iReceiveIds = kind === "HAVE" ? [cardId] : [];
-        // Cash direction:
-        //   HAVE + priced → I pay them (cashCents negative from my POV as requester)
-        //   WANT + priced → they pay me (cashCents positive)
         let cashCents: number | undefined;
         if (priceCents && (offerType === "CASH_ONLY" || offerType === "TRADE_OR_CASH")) {
           cashCents = kind === "HAVE" ? -priceCents : priceCents;

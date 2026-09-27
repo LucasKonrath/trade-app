@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setTradeCash } from "@/app/actions/trades";
 import { parseBRLInput } from "@/lib/money";
+import { useT } from "@/lib/i18n/client";
 
 type Props = {
   tradeId: string;
@@ -11,12 +12,11 @@ type Props = {
 
 export function CashEditor({ tradeId, cashCents }: Props) {
   const [pending, startTransition] = useTransition();
+  const t = useT();
   const [amount, setAmount] = useState(
     cashCents ? String(Math.abs(cashCents) / 100).replace(".", ",") : "",
   );
-  const [direction, setDirection] = useState<"IN" | "OUT">(
-    (cashCents ?? 0) < 0 ? "OUT" : "IN",
-  );
+  const [direction, setDirection] = useState<"IN" | "OUT">((cashCents ?? 0) < 0 ? "OUT" : "IN");
   const [error, setError] = useState<string | null>(null);
 
   const save = () => {
@@ -26,7 +26,7 @@ export function CashEditor({ tradeId, cashCents }: Props) {
       if (amount.trim() !== "") {
         const cents = parseBRLInput(amount);
         if (cents == null || cents <= 0) {
-          setError("Invalid amount");
+          setError(t("tradeDetail.invalidAmount"));
           return;
         }
         value = direction === "IN" ? cents : -cents;
@@ -41,15 +41,16 @@ export function CashEditor({ tradeId, cashCents }: Props) {
 
   return (
     <div className="box p-3 mb-0">
-      <p className="is-size-7 has-text-grey mb-2">
-        Cash (optional). Use this to sell cards you&apos;re giving, buy cards you&apos;re receiving, or balance the trade.
-      </p>
-      <div className="field is-grouped is-align-items-center" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+      <p className="is-size-7 has-text-grey mb-2">{t("tradeDetail.cashOptional")}</p>
+      <div
+        className="field is-grouped is-align-items-center"
+        style={{ flexWrap: "wrap", gap: "0.5rem" }}
+      >
         <div className="control">
           <div className="select is-small">
             <select value={direction} onChange={(e) => setDirection(e.target.value as "IN" | "OUT")}>
-              <option value="IN">They pay you</option>
-              <option value="OUT">You pay them</option>
+              <option value="IN">{t("tradeDetail.theyPayYou")}</option>
+              <option value="OUT">{t("tradeDetail.youPayThem")}</option>
             </select>
           </div>
         </div>
@@ -57,7 +58,7 @@ export function CashEditor({ tradeId, cashCents }: Props) {
           <input
             type="text"
             inputMode="decimal"
-            placeholder="12,50"
+            placeholder={t("tradeDetail.cashPlaceholder")}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="input is-small"
@@ -73,7 +74,7 @@ export function CashEditor({ tradeId, cashCents }: Props) {
             disabled={pending}
             className={`button is-small is-primary ${pending ? "is-loading" : ""}`}
           >
-            Save
+            {t("tradeDetail.save")}
           </button>
         </div>
         {cashCents !== null && (
@@ -88,7 +89,7 @@ export function CashEditor({ tradeId, cashCents }: Props) {
               disabled={pending}
               className="button is-small is-light"
             >
-              Clear
+              {t("tradeDetail.clear")}
             </button>
           </div>
         )}

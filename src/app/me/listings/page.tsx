@@ -4,11 +4,12 @@ import { auth } from "@/auth";
 import { getMyListings } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ListingEditor } from "./listing-editor";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function MyListingsPage() {
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
 
@@ -22,21 +23,33 @@ export default async function MyListingsPage() {
         <div className="level">
           <div className="level-left">
             <div>
-              <h1 className="title is-3">My listings</h1>
+              <h1 className="title is-3">{t("myListings.title")}</h1>
               <p className="subtitle is-6 has-text-grey">
-                {haves.length} HAVE · {wants.length} WANT
+                {t("myListings.summary", { haves: haves.length, wants: wants.length })}
               </p>
             </div>
           </div>
           <div className="level-right">
             <Link href="/cards" className="button is-light">
-              Add from catalog →
+              {t("myListings.addFromCatalog")}
             </Link>
           </div>
         </div>
 
-        <Section title="HAVE" tone="is-success" empty="You haven't listed any cards you have yet." listings={haves} />
-        <Section title="WANT" tone="is-warning" empty="You haven't listed any cards you want yet." listings={wants} />
+        <Section
+          title={t("myListings.haveTitle")}
+          tone="is-success"
+          empty={t("myListings.noHaves")}
+          browseLabel={t("myListings.browseCards")}
+          listings={haves}
+        />
+        <Section
+          title={t("myListings.wantTitle")}
+          tone="is-warning"
+          empty={t("myListings.noWants")}
+          browseLabel={t("myListings.browseCards")}
+          listings={wants}
+        />
       </div>
     </section>
   );
@@ -46,11 +59,13 @@ function Section({
   title,
   tone,
   empty,
+  browseLabel,
   listings,
 }: {
   title: string;
   tone: string;
   empty: string;
+  browseLabel: string;
   listings: Awaited<ReturnType<typeof getMyListings>>;
 }) {
   return (
@@ -63,7 +78,7 @@ function Section({
         <div className="notification is-light has-text-centered">
           {empty}{" "}
           <Link href="/cards" className="has-text-link">
-            Browse cards →
+            {browseLabel}
           </Link>
         </div>
       ) : (

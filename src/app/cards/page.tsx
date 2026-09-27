@@ -8,6 +8,7 @@ import { PriceChip } from "@/components/price-chip";
 import { GameSlug } from "@prisma/client";
 import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function CardsPage({
   const game = (params.game as GameSlug | undefined) ?? undefined;
   const page = Math.max(1, Number(params.page) || 1);
 
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
 
   const { items, total } = await searchCards({
     q,
@@ -51,7 +52,6 @@ export default async function CardsPage({
     byCard.set(l.cardId, bucket);
   }
 
-  // Market stats: how many HAVE + WANT listings from other users per card, and cheapest ask.
   const marketRows = await prisma.listing.groupBy({
     by: ["cardId", "kind"],
     where: {
@@ -80,17 +80,15 @@ export default async function CardsPage({
   return (
     <section className="section">
       <div className="container">
-        <h1 className="title is-3">Cards</h1>
-        <p className="subtitle is-6 has-text-grey">
-          Search the catalog and mark cards as HAVE or WANT.
-        </p>
+        <h1 className="title is-3">{t("cards.title")}</h1>
+        <p className="subtitle is-6 has-text-grey">{t("cards.subtitle")}</p>
 
         <form action="/cards" className="filter-row field is-grouped is-align-items-center mb-5">
           <div className="control is-expanded" style={{ maxWidth: 320 }}>
             <input
               name="q"
               defaultValue={q}
-              placeholder="Search by name…"
+              placeholder={t("cards.searchPlaceholder")}
               className="input"
             />
           </div>
@@ -98,32 +96,40 @@ export default async function CardsPage({
             <div className="control">
               <div className="select">
                 <select name="game" defaultValue={game ?? ""}>
-                  <option value="">All games</option>
-                  {ENABLED_GAMES.includes(GameSlug.pokemon) && <option value="pokemon">Pokémon</option>}
-                  {ENABLED_GAMES.includes(GameSlug.riftbound) && <option value="riftbound">Riftbound</option>}
+                  <option value="">{t("cards.allGames")}</option>
+                  {ENABLED_GAMES.includes(GameSlug.pokemon) && (
+                    <option value="pokemon">{t("cards.pokemon")}</option>
+                  )}
+                  {ENABLED_GAMES.includes(GameSlug.riftbound) && (
+                    <option value="riftbound">{t("cards.riftbound")}</option>
+                  )}
                 </select>
               </div>
             </div>
           )}
           <div className="control">
-            <button className="button is-primary">Search</button>
+            <button className="button is-primary">{t("cards.search")}</button>
           </div>
           <div className="control is-flex-grow-1 has-text-right">
-            <span className="tag is-light">{total.toLocaleString()} cards</span>
+            <span className="tag is-light">
+              {t("cards.cardsCount", { count: total.toLocaleString() })}
+            </span>
           </div>
         </form>
 
         {items.length === 0 ? (
-          <div className="notification is-light has-text-centered">
-            No cards match. Try a different search.
-          </div>
+          <div className="notification is-light has-text-centered">{t("cards.noMatch")}</div>
         ) : (
           <div className="columns is-mobile is-multiline is-variable is-3">
             {items.map((c) => {
               const state = byCard.get(c.id) ?? {};
-              const market = marketByCard.get(c.id) ?? { sellers: 0, buyers: 0, cheapestAskCents: null };
+              const market =
+                marketByCard.get(c.id) ?? { sellers: 0, buyers: 0, cheapestAskCents: null };
               return (
-                <div key={c.id} className="column is-2-desktop is-one-third-tablet is-half-mobile">
+                <div
+                  key={c.id}
+                  className="column is-2-desktop is-one-third-tablet is-half-mobile"
+                >
                   <CardTile
                     name={c.name}
                     imageUrl={c.imageUrl}
@@ -144,14 +150,17 @@ export default async function CardsPage({
                             className={`tag is-small ${market.sellers > 0 ? "is-success" : "is-light"}`}
                           >
                             {market.sellers > 0
-                              ? `${market.sellers} seller${market.sellers === 1 ? "" : "s"}${
-                                  market.cheapestAskCents ? ` · from ${formatBRL(market.cheapestAskCents)}` : ""
-                                }`
-                              : "No sellers"}
+                              ? market.cheapestAskCents
+                                ? t("cards.sellersFrom", {
+                                    count: market.sellers,
+                                    price: formatBRL(market.cheapestAskCents),
+                                  })
+                                : t("cards.sellersWithCount", { count: market.sellers })
+                              : t("cards.noSellers")}
                           </span>
                           {market.buyers > 0 && (
                             <span className="tag is-small is-warning">
-                              {market.buyers} buyer{market.buyers === 1 ? "" : "s"}
+                              {t("cards.buyersWithCount", { count: market.buyers })}
                             </span>
                           )}
                         </Link>
@@ -171,8 +180,11 @@ export default async function CardsPage({
                             />
                           </>
                         ) : (
-                          <Link href="/signin" className="button is-light is-small is-fullwidth">
-                            Sign in to list
+                          <Link
+                            href="/signin"
+                            className="button is-light is-small is-fullwidth"
+                          >
+                            {t("cards.signInToList")}
                           </Link>
                         )}
                       </div>
@@ -191,11 +203,11 @@ export default async function CardsPage({
                 href={{ pathname: "/cards", query: { q, game, page: page - 1 } }}
                 className="pagination-previous"
               >
-                Previous
+                {t("common.previous")}
               </Link>
             ) : (
               <span className="pagination-previous" aria-disabled>
-                Previous
+                {t("common.previous")}
               </span>
             )}
             {page < pages ? (
@@ -203,17 +215,17 @@ export default async function CardsPage({
                 href={{ pathname: "/cards", query: { q, game, page: page + 1 } }}
                 className="pagination-next"
               >
-                Next
+                {t("common.next")}
               </Link>
             ) : (
               <span className="pagination-next" aria-disabled>
-                Next
+                {t("common.next")}
               </span>
             )}
             <ul className="pagination-list">
               <li>
                 <span className="pagination-link is-current">
-                  Page {page} of {pages}
+                  {t("cards.pageOf", { page, pages })}
                 </span>
               </li>
             </ul>

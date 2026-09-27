@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { createTrade } from "@/app/actions/trades";
+import { useT } from "@/lib/i18n/client";
 
 type Props = {
   responderId: string;
@@ -11,14 +12,13 @@ type Props = {
 
 export function ProposeTradeButton({ responderId, iGiveIds, iReceiveIds }: Props) {
   const [pending, startTransition] = useTransition();
+  const t = useT();
 
   const onClick = () => {
     startTransition(async () => {
       try {
         await createTrade({ responderId, iGiveIds, iReceiveIds });
       } catch (err) {
-        // createTrade redirects to /trades/[id] on success, which throws a Next.js redirect.
-        // Only re-alert on genuine errors, not on redirect throws.
         if ((err as Error).message !== "NEXT_REDIRECT") {
           alert((err as Error).message);
         }
@@ -32,7 +32,7 @@ export function ProposeTradeButton({ responderId, iGiveIds, iReceiveIds }: Props
       disabled={pending}
       className={`button is-primary ${pending ? "is-loading" : ""}`}
     >
-      Propose trade
+      {t("propose.proposeTrade")}
     </button>
   );
 }

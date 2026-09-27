@@ -8,6 +8,7 @@ import { ProposeListingButton } from "@/components/propose-listing-button";
 import { PriceChip } from "@/components/price-chip";
 import { ListToggle } from "@/components/list-toggle";
 import { formatBRL } from "@/lib/money";
+import { getT } from "@/lib/i18n/server";
 import type { ListingKind } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function CardDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
   const data = await getCardWithListings(id, session?.user?.id);
   if (!data) notFound();
 
@@ -32,7 +33,7 @@ export default async function CardDetailPage({
         <nav className="breadcrumb is-small mb-4">
           <ul>
             <li>
-              <Link href="/cards">Cards</Link>
+              <Link href="/cards">{t("cardDetail.breadcrumb")}</Link>
             </li>
             <li className="is-active">
               <a>{card.name}</a>
@@ -62,10 +63,10 @@ export default async function CardDetailPage({
 
             {session?.user && (
               <div className="box mt-4">
-                <h3 className="title is-6 mb-3">Your listings</h3>
+                <h3 className="title is-6 mb-3">{t("cardDetail.yourListings")}</h3>
                 <div className="columns is-mobile">
                   <div className="column">
-                    <p className="is-size-7 has-text-grey mb-1">HAVE</p>
+                    <p className="is-size-7 has-text-grey mb-1">{t("cardDetail.have")}</p>
                     <ListToggle
                       cardId={card.id}
                       existing={myHave ? { id: myHave.id, quantity: myHave.quantity } : null}
@@ -80,7 +81,7 @@ export default async function CardDetailPage({
                     </div>
                   </div>
                   <div className="column">
-                    <p className="is-size-7 has-text-grey mb-1">WANT</p>
+                    <p className="is-size-7 has-text-grey mb-1">{t("cardDetail.want")}</p>
                     <ListToggle
                       cardId={card.id}
                       existing={myWant ? { id: myWant.id, quantity: myWant.quantity } : null}
@@ -101,18 +102,22 @@ export default async function CardDetailPage({
         </div>
 
         <ListingsSection
-          title="Sellers"
+          title={t("cardDetail.sellers")}
           tone="is-success"
-          empty="Nobody's listed this card yet."
+          empty={t("cardDetail.nobodyListed")}
+          tradeOnlyLabel={t("cardDetail.tradeOnly")}
+          cashLabel={t("cardDetail.cash")}
           listings={sellers}
           kind="HAVE"
           canPropose={!!session?.user}
           cardId={card.id}
         />
         <ListingsSection
-          title="Wanted by"
+          title={t("cardDetail.wantedBy")}
           tone="is-warning"
-          empty="No one's looking for this right now."
+          empty={t("cardDetail.noOneLooking")}
+          tradeOnlyLabel={t("cardDetail.tradeOnly")}
+          cashLabel={t("cardDetail.cash")}
           listings={buyers}
           kind="WANT"
           canPropose={!!session?.user}
@@ -139,6 +144,8 @@ function ListingsSection({
   title,
   tone,
   empty,
+  tradeOnlyLabel,
+  cashLabel,
   listings,
   kind,
   canPropose,
@@ -147,6 +154,8 @@ function ListingsSection({
   title: string;
   tone: string;
   empty: string;
+  tradeOnlyLabel: string;
+  cashLabel: string;
   listings: ListingRow[];
   kind: ListingKind;
   canPropose: boolean;
@@ -186,10 +195,10 @@ function ListingsSection({
                       {l.priceCents != null ? (
                         <span className="tag is-small is-primary is-light">
                           {formatBRL(l.priceCents)}
-                          {l.offerType === "CASH_ONLY" ? " · cash" : ""}
+                          {l.offerType === "CASH_ONLY" ? ` · ${cashLabel}` : ""}
                         </span>
                       ) : (
-                        <span className="tag is-small is-light">Trade only</span>
+                        <span className="tag is-small is-light">{tradeOnlyLabel}</span>
                       )}
                       <span className="has-text-grey is-size-7">
                         {l.condition ?? "—"} · qty {l.quantity}

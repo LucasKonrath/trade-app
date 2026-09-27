@@ -6,6 +6,7 @@ import { CardTile } from "@/components/card-tile";
 import { ProposeListingButton } from "@/components/propose-listing-button";
 import { ENABLED_GAMES } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
+import { getT } from "@/lib/i18n/server";
 import type { ListingKind, OfferType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export default async function ProfilePage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
   const user = await prisma.user.findUnique({
     where: { handle },
     select: {
@@ -63,14 +64,28 @@ export default async function ProfilePage({
             <div>
               <h1 className="title is-3">@{user.handle}</h1>
               <p className="subtitle is-6 has-text-grey">
-                {haves.length} HAVE · {wants.length} WANT
+                {t("profile.summary", { haves: haves.length, wants: wants.length })}
               </p>
             </div>
           </div>
         </div>
 
-        <Section title="HAVE" tone="is-success" listings={haves} canPropose={!!canPropose} ownerId={user.id} />
-        <Section title="WANT" tone="is-warning" listings={wants} canPropose={!!canPropose} ownerId={user.id} />
+        <Section
+          title={t("profile.haveTitle")}
+          tone="is-success"
+          listings={haves}
+          canPropose={!!canPropose}
+          ownerId={user.id}
+          emptyLabel={t("profile.noneListed")}
+        />
+        <Section
+          title={t("profile.wantTitle")}
+          tone="is-warning"
+          listings={wants}
+          canPropose={!!canPropose}
+          ownerId={user.id}
+          emptyLabel={t("profile.noneListed")}
+        />
       </div>
     </section>
   );
@@ -82,6 +97,7 @@ function Section({
   listings,
   canPropose,
   ownerId,
+  emptyLabel,
 }: {
   title: string;
   tone: string;
@@ -106,6 +122,7 @@ function Section({
   }[];
   canPropose: boolean;
   ownerId: string;
+  emptyLabel: string;
 }) {
   return (
     <div className="mb-6">
@@ -114,7 +131,7 @@ function Section({
         <span className="has-text-grey is-size-6">({listings.length})</span>
       </h2>
       {listings.length === 0 ? (
-        <div className="has-text-grey is-italic is-size-7">None listed.</div>
+        <div className="has-text-grey is-italic is-size-7">{emptyLabel}</div>
       ) : (
         <div className="columns is-mobile is-multiline is-variable is-3">
           {listings.map((l) => (
@@ -131,14 +148,14 @@ function Section({
                 footer={
                   <div className="is-size-7">
                     <div className="has-text-grey">
-                      Qty {l.quantity}
+                      qty {l.quantity}
                       {l.condition ? ` · ${l.condition}` : ""}
                     </div>
                     {l.priceCents !== null && (
                       <div className="mt-1">
                         <span className="tag is-primary is-small">
                           {formatBRL(l.priceCents)}
-                          {l.offerType === "CASH_ONLY" ? " · cash only" : ""}
+                          {l.offerType === "CASH_ONLY" ? " · cash" : ""}
                         </span>
                       </div>
                     )}

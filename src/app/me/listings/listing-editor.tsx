@@ -3,21 +3,10 @@
 import { useState, useTransition } from "react";
 import { upsertListing, deleteListing } from "@/app/actions/listings";
 import { formatBRL, parseBRLInput } from "@/lib/money";
+import { useT } from "@/lib/i18n/client";
 import type { CardCondition, ListingKind, OfferType } from "@prisma/client";
 
 const CONDITIONS: CardCondition[] = ["NM", "LP", "MP", "HP", "DMG"];
-
-const OFFER_LABEL_HAVE: Record<OfferType, string> = {
-  TRADE_ONLY: "Trade only",
-  CASH_ONLY: "For sale (cash only)",
-  TRADE_OR_CASH: "Trade or sale",
-};
-
-const OFFER_LABEL_WANT: Record<OfferType, string> = {
-  TRADE_ONLY: "Trade only",
-  CASH_ONLY: "Buying (cash only)",
-  TRADE_OR_CASH: "Trade or buying",
-};
 
 type Props = {
   listingId: string;
@@ -40,6 +29,7 @@ export function ListingEditor({
   offerType,
   priceCents,
 }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -50,12 +40,17 @@ export function ListingEditor({
   const [price, setPrice] = useState(priceCents ? String(priceCents / 100).replace(".", ",") : "");
   const [error, setError] = useState<string | null>(null);
 
+  const offerLabelFor = (ofType: OfferType) =>
+    kind === "HAVE"
+      ? t(`listingEditor.offerHave.${ofType}`)
+      : t(`listingEditor.offerWant.${ofType}`);
+
   const save = () => {
     setError(null);
     if (ot !== "TRADE_ONLY") {
       const cents = parseBRLInput(price);
       if (cents == null || cents <= 0) {
-        setError("Set a price for cash listings");
+        setError(t("listingEditor.priceRequired"));
         return;
       }
     }
@@ -88,22 +83,24 @@ export function ListingEditor({
     });
   };
 
-  const offerLabels = kind === "HAVE" ? OFFER_LABEL_HAVE : OFFER_LABEL_WANT;
-
   if (!open) {
     return (
       <div className="is-size-7">
         <div className="has-text-grey">
-          Qty {quantity}
+          {t("listingEditor.qtyPrefix")} {quantity}
           {condition ? ` · ${condition}` : ""}
         </div>
         <div className="mt-1">
           <span
             className={`tag is-small ${
-              offerType === "TRADE_ONLY" ? "is-light" : offerType === "CASH_ONLY" ? "is-primary" : "is-warning"
+              offerType === "TRADE_ONLY"
+                ? "is-light"
+                : offerType === "CASH_ONLY"
+                  ? "is-primary"
+                  : "is-warning"
             }`}
           >
-            {offerLabels[offerType]}
+            {offerLabelFor(offerType)}
             {priceCents ? ` · ${formatBRL(priceCents)}` : ""}
           </span>
         </div>
@@ -113,8 +110,12 @@ export function ListingEditor({
           </div>
         )}
         <div className="buttons are-small mt-2" style={{ gap: "0.375rem" }}>
-          <button onClick={() => setOpen(true)} className="button is-light is-small is-fullwidth" style={{ flex: 1 }}>
-            Edit
+          <button
+            onClick={() => setOpen(true)}
+            className="button is-light is-small is-fullwidth"
+            style={{ flex: 1 }}
+          >
+            {t("common.edit")}
           </button>
           <button
             onClick={remove}
@@ -132,7 +133,7 @@ export function ListingEditor({
     <div className="is-size-7">
       <div className="field is-horizontal mb-1">
         <div className="field-label is-small" style={{ flexBasis: "3rem", flexGrow: 0 }}>
-          <label className="label is-small has-text-grey">Qty</label>
+          <label className="label is-small has-text-grey">{t("listingEditor.qty")}</label>
         </div>
         <div className="field-body">
           <div className="field">
@@ -152,7 +153,7 @@ export function ListingEditor({
 
       <div className="field is-horizontal mb-1">
         <div className="field-label is-small" style={{ flexBasis: "3rem", flexGrow: 0 }}>
-          <label className="label is-small has-text-grey">Cond</label>
+          <label className="label is-small has-text-grey">{t("listingEditor.condition")}</label>
         </div>
         <div className="field-body">
           <div className="field">
@@ -174,16 +175,16 @@ export function ListingEditor({
 
       <div className="field is-horizontal mb-1">
         <div className="field-label is-small" style={{ flexBasis: "3rem", flexGrow: 0 }}>
-          <label className="label is-small has-text-grey">Type</label>
+          <label className="label is-small has-text-grey">{t("listingEditor.type")}</label>
         </div>
         <div className="field-body">
           <div className="field">
             <div className="control">
               <div className="select is-small is-fullwidth">
                 <select value={ot} onChange={(e) => setOt(e.target.value as OfferType)}>
-                  <option value="TRADE_ONLY">{offerLabels.TRADE_ONLY}</option>
-                  <option value="CASH_ONLY">{offerLabels.CASH_ONLY}</option>
-                  <option value="TRADE_OR_CASH">{offerLabels.TRADE_OR_CASH}</option>
+                  <option value="TRADE_ONLY">{offerLabelFor("TRADE_ONLY")}</option>
+                  <option value="CASH_ONLY">{offerLabelFor("CASH_ONLY")}</option>
+                  <option value="TRADE_OR_CASH">{offerLabelFor("TRADE_OR_CASH")}</option>
                 </select>
               </div>
             </div>
@@ -218,7 +219,7 @@ export function ListingEditor({
           <textarea
             value={n}
             onChange={(e) => setN(e.target.value)}
-            placeholder="Note (optional)"
+            placeholder={t("listingEditor.notePlaceholder")}
             maxLength={280}
             rows={2}
             className="textarea is-small"
@@ -235,7 +236,7 @@ export function ListingEditor({
           className={`button is-primary is-small ${pending ? "is-loading" : ""}`}
           style={{ flex: 1 }}
         >
-          Save
+          {t("common.save")}
         </button>
         <button
           onClick={() => {
@@ -244,7 +245,7 @@ export function ListingEditor({
           }}
           className="button is-light is-small"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </div>

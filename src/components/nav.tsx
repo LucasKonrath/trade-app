@@ -1,43 +1,48 @@
 import Link from "next/link";
 import { auth, signOut, signIn } from "@/auth";
 import { NavBurger } from "./nav-burger";
+import { LocaleSwitcher } from "./locale-switcher";
+import { getT } from "@/lib/i18n/server";
 
 export async function Nav() {
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
 
   return (
     <nav className="navbar has-shadow brand-navbar" role="navigation" aria-label="main navigation">
       <div className="container">
         <div className="navbar-brand">
           <Link href="/" className="navbar-item has-text-weight-bold">
-            Trade App
+            {t("nav.brand")}
           </Link>
         </div>
 
         <NavBurger>
           <div className="navbar-start">
             <Link href="/cards" className="navbar-item">
-              Cards
+              {t("nav.cards")}
             </Link>
             <Link href="/browse" className="navbar-item">
-              Browse
+              {t("nav.browse")}
             </Link>
             {session?.user && (
               <>
                 <Link href="/matches" className="navbar-item">
-                  Matches
+                  {t("nav.matches")}
                 </Link>
                 <Link href="/trades" className="navbar-item">
-                  Trades
+                  {t("nav.trades")}
                 </Link>
                 <Link href="/me/listings" className="navbar-item">
-                  My listings
+                  {t("nav.myListings")}
                 </Link>
               </>
             )}
           </div>
 
           <div className="navbar-end">
+            <div className="navbar-item">
+              <LocaleSwitcher />
+            </div>
             <div className="navbar-item">
               {session?.user ? (
                 <form
@@ -51,7 +56,7 @@ export async function Nav() {
                   <span className="has-text-grey-light is-size-7">
                     {session.user.handle ? `@${session.user.handle}` : session.user.email}
                   </span>
-                  <button className="button is-light is-small">Sign out</button>
+                  <button className="button is-light is-small">{t("nav.signOut")}</button>
                 </form>
               ) : (
                 <form
@@ -60,7 +65,7 @@ export async function Nav() {
                     await signIn();
                   }}
                 >
-                  <button className="button is-primary is-small">Sign in</button>
+                  <button className="button is-primary is-small">{t("nav.signIn")}</button>
                 </form>
               )}
             </div>

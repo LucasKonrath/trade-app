@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { addPriceToListing, removePriceFromListing } from "@/app/actions/listings";
 import { formatBRL, parseBRLInput } from "@/lib/money";
+import { useT } from "@/lib/i18n/client";
 import type { ListingKind } from "@prisma/client";
 
 type Props = {
@@ -11,11 +12,6 @@ type Props = {
   currentPriceCents: number | null;
 };
 
-/**
- * Compact "For sale R$ X" / "To buy R$ X" chip on card tiles.
- * Collapsed: shows current price or "Sell" / "Buy" call to action.
- * Expanded: shows price input + save/clear.
- */
 export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -23,14 +19,13 @@ export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
     currentPriceCents ? String(currentPriceCents / 100).replace(".", ",") : "",
   );
   const [error, setError] = useState<string | null>(null);
-
-  const label = kind === "HAVE" ? "Sell" : "Buy";
+  const t = useT();
 
   const save = () => {
     setError(null);
     const cents = parseBRLInput(amount);
     if (cents == null || cents <= 0) {
-      setError("Enter a price");
+      setError(t("priceChip.enterPrice"));
       return;
     }
     startTransition(async () => {
@@ -53,13 +48,16 @@ export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
 
   if (!open) {
     if (currentPriceCents != null) {
+      const price = formatBRL(currentPriceCents);
       return (
         <button
           onClick={() => setOpen(true)}
           disabled={pending}
           className="button is-small is-fullwidth is-primary is-light"
         >
-          {label} · {formatBRL(currentPriceCents)}
+          {kind === "HAVE"
+            ? t("priceChip.sellWithPrice", { price })
+            : t("priceChip.buyWithPrice", { price })}
         </button>
       );
     }
@@ -69,7 +67,7 @@ export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
         disabled={pending}
         className="button is-small is-fullwidth"
       >
-        {label} for R$…
+        {kind === "HAVE" ? t("priceChip.sellPromptShort") : t("priceChip.buyPromptShort")}
       </button>
     );
   }
@@ -82,7 +80,7 @@ export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
             type="text"
             inputMode="decimal"
             autoFocus
-            placeholder="12,50"
+            placeholder={t("priceChip.pricePlaceholder")}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             onKeyDown={(e) => {
@@ -99,7 +97,7 @@ export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
             disabled={pending}
             className={`button is-small is-primary ${pending ? "is-loading" : ""}`}
           >
-            Save
+            {t("priceChip.save")}
           </button>
         </div>
       </div>
@@ -112,7 +110,7 @@ export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
           className="button is-small is-light"
           style={{ flex: 1 }}
         >
-          Cancel
+          {t("priceChip.cancel")}
         </button>
         {currentPriceCents != null && (
           <button
@@ -120,7 +118,7 @@ export function PriceChip({ cardId, kind, currentPriceCents }: Props) {
             disabled={pending}
             className="button is-small is-danger is-outlined"
           >
-            Remove
+            {t("priceChip.remove")}
           </button>
         )}
       </div>

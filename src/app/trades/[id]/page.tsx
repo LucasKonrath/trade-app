@@ -7,6 +7,7 @@ import { CardTile } from "@/components/card-tile";
 import { TradeActions } from "./trade-actions";
 import { CashEditor } from "./cash-editor";
 import { formatBRL } from "@/lib/money";
+import { getT } from "@/lib/i18n/server";
 import { TradeStatus, TradeDirection } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -18,19 +19,12 @@ const STATUS_TONE: Record<TradeStatus, string> = {
   FINISHED: "is-success",
 };
 
-const STATUS_BLURB: Record<TradeStatus, string> = {
-  OPEN: "Draft — only you can see this. Send it when you're happy with the cards.",
-  REQUESTED: "Sent. Waiting on the other party.",
-  ACCEPTED: "Accepted. Arrange the swap in person, then mark it finished.",
-  FINISHED: "Trade completed. Cards were removed from both HAVE/WANT lists.",
-};
-
 export default async function TradePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
 
@@ -42,10 +36,14 @@ export default async function TradePage({
   const other = iAmRequester ? trade.responder : trade.requester;
 
   const iGive = trade.items.filter((i) =>
-    iAmRequester ? i.direction === TradeDirection.FROM_REQUESTER : i.direction === TradeDirection.FROM_RESPONDER,
+    iAmRequester
+      ? i.direction === TradeDirection.FROM_REQUESTER
+      : i.direction === TradeDirection.FROM_RESPONDER,
   );
   const iReceive = trade.items.filter((i) =>
-    iAmRequester ? i.direction === TradeDirection.FROM_RESPONDER : i.direction === TradeDirection.FROM_REQUESTER,
+    iAmRequester
+      ? i.direction === TradeDirection.FROM_RESPONDER
+      : i.direction === TradeDirection.FROM_REQUESTER,
   );
 
   return (
@@ -54,7 +52,7 @@ export default async function TradePage({
         <nav className="breadcrumb is-small mb-4">
           <ul>
             <li>
-              <Link href="/trades">Trades</Link>
+              <Link href="/trades">{t("tradeDetail.breadcrumbTrades")}</Link>
             </li>
             <li className="is-active">
               <a>{trade.id.slice(0, 8)}</a>
@@ -79,7 +77,7 @@ export default async function TradePage({
                 )}
                 <div>
                   <div className="has-text-grey is-size-7">
-                    Trading with {iAmRequester ? "" : "(they proposed)"}
+                    {iAmRequester ? t("tradeDetail.tradingWith") : t("tradeDetail.tradingWithProposed")}
                   </div>
                   <Link
                     href={other.handle ? `/u/${other.handle}` : "#"}
@@ -91,22 +89,27 @@ export default async function TradePage({
               </div>
             </div>
             <div className="level-right">
-              <span className={`tag is-large ${STATUS_TONE[trade.status]}`}>{trade.status}</span>
+              <span className={`tag is-large ${STATUS_TONE[trade.status]}`}>
+                {t(`tradeStatus.${trade.status}`)}
+              </span>
             </div>
           </div>
-          <p className="has-text-grey is-size-7 mt-3 mb-0">{STATUS_BLURB[trade.status]}</p>
+          <p className="has-text-grey is-size-7 mt-3 mb-0">
+            {t(`tradeDetail.statusBlurb.${trade.status}`)}
+          </p>
 
           {(() => {
             const cash = trade.cashCents;
             if (!cash) return null;
             const cashFromMe = iAmRequester ? cash < 0 : cash > 0;
             const amount = formatBRL(Math.abs(cash));
+            const otherLabel = other.handle ? `@${other.handle}` : "";
             return (
               <div className="notification is-info is-light mt-3 mb-0 py-2 px-3">
-                <strong>{cashFromMe ? "You pay" : "You receive"} {amount}</strong>{" "}
-                {cashFromMe
-                  ? `to ${other.handle ? "@" + other.handle : "the other party"}`
-                  : `from ${other.handle ? "@" + other.handle : "the other party"}`}
+                <strong>
+                  {cashFromMe ? t("tradeDetail.youPay") : t("tradeDetail.youReceive")} {amount}
+                </strong>{" "}
+                {cashFromMe ? t("tradeDetail.to") : t("tradeDetail.from")} {otherLabel}
               </div>
             );
           })()}
@@ -121,11 +124,11 @@ export default async function TradePage({
         <div className="columns">
           <div className="column">
             <h3 className="title is-6">
-              <span className="tag is-warning mr-2">You give</span>
+              <span className="tag is-warning mr-2">{t("tradeDetail.youGiveTag")}</span>
               <span className="has-text-grey is-size-6">({iGive.length})</span>
             </h3>
             {iGive.length === 0 ? (
-              <div className="notification is-light">Nothing on this side yet.</div>
+              <div className="notification is-light">{t("tradeDetail.nothingOnSide")}</div>
             ) : (
               <div className="columns is-mobile is-multiline is-variable is-2">
                 {iGive.map((item) => (
@@ -138,6 +141,7 @@ export default async function TradePage({
                       rarity={item.card.rarity}
                       gameSlug={item.card.game.slug}
                       orientation={item.card.orientation}
+                      href={`/cards/${item.cardId}`}
                     />
                   </div>
                 ))}
@@ -147,11 +151,11 @@ export default async function TradePage({
 
           <div className="column">
             <h3 className="title is-6">
-              <span className="tag is-success mr-2">You receive</span>
+              <span className="tag is-success mr-2">{t("tradeDetail.youReceiveTag")}</span>
               <span className="has-text-grey is-size-6">({iReceive.length})</span>
             </h3>
             {iReceive.length === 0 ? (
-              <div className="notification is-light">Nothing on this side yet.</div>
+              <div className="notification is-light">{t("tradeDetail.nothingOnSide")}</div>
             ) : (
               <div className="columns is-mobile is-multiline is-variable is-2">
                 {iReceive.map((item) => (
@@ -164,6 +168,7 @@ export default async function TradePage({
                       rarity={item.card.rarity}
                       gameSlug={item.card.game.slug}
                       orientation={item.card.orientation}
+                      href={`/cards/${item.cardId}`}
                     />
                   </div>
                 ))}
@@ -181,10 +186,14 @@ export default async function TradePage({
             iReceiveCount={iReceive.length}
             cashCents={trade.cashCents}
             myConfirmed={
-              iAmRequester ? trade.requesterFinishedAt !== null : trade.responderFinishedAt !== null
+              iAmRequester
+                ? trade.requesterFinishedAt !== null
+                : trade.responderFinishedAt !== null
             }
             otherConfirmed={
-              iAmRequester ? trade.responderFinishedAt !== null : trade.requesterFinishedAt !== null
+              iAmRequester
+                ? trade.responderFinishedAt !== null
+                : trade.requesterFinishedAt !== null
             }
             otherHandle={other.handle}
           />

@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { upsertListing, deleteListing } from "@/app/actions/listings";
+import { useT } from "@/lib/i18n/client";
 import type { ListingKind } from "@prisma/client";
 
 type Props = {
@@ -12,10 +13,11 @@ type Props = {
 
 export function ListToggle({ cardId, existing, kind }: Props) {
   const [pending, startTransition] = useTransition();
+  const t = useT();
 
   const active = !!existing;
-  const label = kind === "HAVE" ? "I have this" : "I want this";
-  const activeLabel = kind === "HAVE" ? "In my Haves" : "In my Wants";
+  const label = kind === "HAVE" ? t("cards.iHaveThis") : t("cards.iWantThis");
+  const activeLabel = kind === "HAVE" ? t("cards.inMyHaves") : t("cards.inMyWants");
 
   const onToggle = () => {
     startTransition(async () => {

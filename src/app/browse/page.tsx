@@ -6,6 +6,7 @@ import { ProposeListingButton } from "@/components/propose-listing-button";
 import { GameSlug, ListingKind } from "@prisma/client";
 import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
+import { getT } from "@/lib/i18n/server";
 import type { ListingIntent } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export default async function BrowsePage({
   const intent = (params.intent as ListingIntent | undefined) ?? undefined;
   const page = Math.max(1, Number(params.page) || 1);
 
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
 
   const { items, total } = await browseListings({
     q,
@@ -43,17 +44,15 @@ export default async function BrowsePage({
   return (
     <section className="section">
       <div className="container">
-        <h1 className="title is-3">Browse listings</h1>
-        <p className="subtitle is-6 has-text-grey">
-          What everyone else at the LGS is trading.
-        </p>
+        <h1 className="title is-3">{t("browse.title")}</h1>
+        <p className="subtitle is-6 has-text-grey">{t("browse.subtitle")}</p>
 
         <form action="/browse" className="filter-row field is-grouped is-align-items-center mb-5">
           <div className="control is-expanded" style={{ maxWidth: 320 }}>
             <input
               name="q"
               defaultValue={q}
-              placeholder="Search cards…"
+              placeholder={t("browse.searchPlaceholder")}
               className="input"
             />
           </div>
@@ -61,9 +60,13 @@ export default async function BrowsePage({
             <div className="control">
               <div className="select">
                 <select name="game" defaultValue={game ?? ""}>
-                  <option value="">All games</option>
-                  {ENABLED_GAMES.includes(GameSlug.pokemon) && <option value="pokemon">Pokémon</option>}
-                  {ENABLED_GAMES.includes(GameSlug.riftbound) && <option value="riftbound">Riftbound</option>}
+                  <option value="">{t("cards.allGames")}</option>
+                  {ENABLED_GAMES.includes(GameSlug.pokemon) && (
+                    <option value="pokemon">{t("cards.pokemon")}</option>
+                  )}
+                  {ENABLED_GAMES.includes(GameSlug.riftbound) && (
+                    <option value="riftbound">{t("cards.riftbound")}</option>
+                  )}
                 </select>
               </div>
             </div>
@@ -71,34 +74,36 @@ export default async function BrowsePage({
           <div className="control">
             <div className="select">
               <select name="kind" defaultValue={kind ?? ""}>
-                <option value="">HAVE and WANT</option>
-                <option value="HAVE">HAVE only</option>
-                <option value="WANT">WANT only</option>
+                <option value="">{t("browse.haveAndWant")}</option>
+                <option value="HAVE">{t("browse.haveOnly")}</option>
+                <option value="WANT">{t("browse.wantOnly")}</option>
               </select>
             </div>
           </div>
           <div className="control">
             <div className="select">
               <select name="intent" defaultValue={intent ?? ""}>
-                <option value="">Any offer</option>
-                <option value="TRADE">Trade</option>
-                <option value="CASH">Cash</option>
+                <option value="">{t("browse.anyOffer")}</option>
+                <option value="TRADE">{t("browse.trade")}</option>
+                <option value="CASH">{t("browse.cash")}</option>
               </select>
             </div>
           </div>
           <div className="control">
-            <button className="button is-primary">Filter</button>
+            <button className="button is-primary">{t("browse.filter")}</button>
           </div>
           <div className="control is-flex-grow-1 has-text-right">
-            <span className="tag is-light">{total.toLocaleString()} listings</span>
+            <span className="tag is-light">
+              {t("browse.listingsCount", { count: total.toLocaleString() })}
+            </span>
           </div>
         </form>
 
         {items.length === 0 ? (
           <div className="notification is-light has-text-centered">
-            Nothing here yet. Be the first to post!{" "}
+            {t("browse.nothingYet")}{" "}
             <Link href="/cards" className="has-text-link">
-              Browse the catalog →
+              {t("browse.browseCatalog")}
             </Link>
           </div>
         ) : (
@@ -120,13 +125,13 @@ export default async function BrowsePage({
                         <span
                           className={`tag ${l.kind === "HAVE" ? "is-success" : "is-warning"} is-small`}
                         >
-                          {l.kind} · qty {l.quantity}
+                          {l.kind === "HAVE" ? t("cardDetail.have") : t("cardDetail.want")} · {t("listingEditor.qtyPrefix")} {l.quantity}
                           {l.condition ? ` · ${l.condition}` : ""}
                         </span>
                         {l.priceCents !== null && (
                           <span className="tag is-primary is-small">
                             {formatBRL(l.priceCents)}
-                            {l.offerType === "CASH_ONLY" ? " · cash only" : ""}
+                            {l.offerType === "CASH_ONLY" ? ` · ${t("cardDetail.cash")}` : ""}
                           </span>
                         )}
                       </div>
@@ -137,7 +142,10 @@ export default async function BrowsePage({
                         {l.user.handle ? `@${l.user.handle}` : l.user.name ?? "unnamed"}
                       </Link>
                       {l.note && (
-                        <div className="is-size-7 has-text-grey mt-1 mb-1" style={{ lineHeight: 1.3 }}>
+                        <div
+                          className="is-size-7 has-text-grey mt-1 mb-1"
+                          style={{ lineHeight: 1.3 }}
+                        >
                           {l.note}
                         </div>
                       )}
@@ -151,8 +159,11 @@ export default async function BrowsePage({
                             priceCents={l.priceCents}
                           />
                         ) : (
-                          <Link href="/signin" className="button is-small is-light is-fullwidth">
-                            Sign in to propose
+                          <Link
+                            href="/signin"
+                            className="button is-small is-light is-fullwidth"
+                          >
+                            {t("browse.signInToPropose")}
                           </Link>
                         )}
                       </div>
@@ -171,11 +182,11 @@ export default async function BrowsePage({
                 href={{ pathname: "/browse", query: { q, game, kind, intent, page: page - 1 } }}
                 className="pagination-previous"
               >
-                Previous
+                {t("common.previous")}
               </Link>
             ) : (
               <span className="pagination-previous" aria-disabled>
-                Previous
+                {t("common.previous")}
               </span>
             )}
             {page < pages ? (
@@ -183,17 +194,17 @@ export default async function BrowsePage({
                 href={{ pathname: "/browse", query: { q, game, kind, intent, page: page + 1 } }}
                 className="pagination-next"
               >
-                Next
+                {t("common.next")}
               </Link>
             ) : (
               <span className="pagination-next" aria-disabled>
-                Next
+                {t("common.next")}
               </span>
             )}
             <ul className="pagination-list">
               <li>
                 <span className="pagination-link is-current">
-                  Page {page} of {pages}
+                  {t("cards.pageOf", { page, pages })}
                 </span>
               </li>
             </ul>

@@ -1,35 +1,33 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { getT } from "@/lib/i18n/server";
 
 export default async function Home() {
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
 
   return (
     <section className="hero is-medium brand-hero">
       <div className="hero-body">
         <div className="container">
-          <h1 className="title is-2">Trade TCG cards with players at your LGS.</h1>
-          <p className="subtitle is-5 mt-4">
-            Post the cards you have and the cards you want. We&apos;ll find matches — players
-            who want what you have and have what you want.
-          </p>
+          <h1 className="title is-2">{t("landing.heading")}</h1>
+          <p className="subtitle is-5 mt-4">{t("landing.subheading")}</p>
           <div className="buttons mt-5">
             {session?.user ? (
               <>
                 <Link href="/matches" className="button is-primary is-medium">
-                  See matches
+                  {t("landing.seeMatches")}
                 </Link>
                 <Link href="/me/listings" className="button is-light is-medium">
-                  My listings
+                  {t("landing.myListings")}
                 </Link>
               </>
             ) : (
               <Link href="/signin" className="button is-primary is-medium">
-                Sign in to start trading
+                {t("landing.signInToStart")}
               </Link>
             )}
             <Link href="/cards" className="button is-light is-medium">
-              Browse cards
+              {t("landing.browseCards")}
             </Link>
           </div>
         </div>

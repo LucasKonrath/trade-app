@@ -3,6 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getMyTrades } from "@/lib/queries";
+import { getT } from "@/lib/i18n/server";
 import { TradeStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -15,25 +16,35 @@ const STATUS_TONE: Record<TradeStatus, string> = {
 };
 
 export default async function TradesPage() {
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getT()]);
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
   const me = session.user;
 
   const trades = await getMyTrades(me.id);
-  const outgoing = trades.filter((t) => t.requesterId === me.id);
-  const incoming = trades.filter((t) => t.responderId === me.id);
+  const outgoing = trades.filter((tr) => tr.requesterId === me.id);
+  const incoming = trades.filter((tr) => tr.responderId === me.id);
 
   return (
     <section className="section">
       <div className="container">
-        <h1 className="title is-3">Trades</h1>
-        <p className="subtitle is-6 has-text-grey">
-          Track proposals you&apos;ve sent and requests you&apos;ve received.
-        </p>
+        <h1 className="title is-3">{t("trades.title")}</h1>
+        <p className="subtitle is-6 has-text-grey">{t("trades.subtitle")}</p>
 
-        <Section title="Incoming" empty="No incoming trade requests." trades={incoming} me={me.id} />
-        <Section title="Outgoing" empty="You haven't proposed any trades yet." trades={outgoing} me={me.id} />
+        <Section
+          title={t("trades.incoming")}
+          empty={t("trades.noIncoming")}
+          trades={incoming}
+          me={me.id}
+          t={t}
+        />
+        <Section
+          title={t("trades.outgoing")}
+          empty={t("trades.noOutgoing")}
+          trades={outgoing}
+          me={me.id}
+          t={t}
+        />
       </div>
     </section>
   );
@@ -44,11 +55,13 @@ function Section({
   empty,
   trades,
   me,
+  t,
 }: {
   title: string;
   empty: string;
   trades: Awaited<ReturnType<typeof getMyTrades>>;
   me: string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   return (
     <div className="mb-6">
@@ -60,28 +73,37 @@ function Section({
           <table className="table is-fullwidth is-hoverable mb-0">
             <thead>
               <tr>
-                <th>Counterparty</th>
-                <th>Status</th>
-                <th>You give</th>
-                <th>You receive</th>
-                <th>Updated</th>
+                <th>{t("trades.counterparty")}</th>
+                <th>{t("trades.status")}</th>
+                <th>{t("trades.youGiveCol")}</th>
+                <th>{t("trades.youReceiveCol")}</th>
+                <th>{t("trades.updated")}</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {trades.map((t) => {
-                const iAmRequester = t.requesterId === me;
-                const other = iAmRequester ? t.responder : t.requester;
-                const giveCount = t.items.filter(
+              {trades.map((tr) => {
+                const iAmRequester = tr.requesterId === me;
+                const other = iAmRequester ? tr.responder : tr.requester;
+                const giveCount = tr.items.filter(
                   (i) => (iAmRequester ? "FROM_REQUESTER" : "FROM_RESPONDER") === i.direction,
                 ).length;
-                const receiveCount = t.items.length - giveCount;
+                const receiveCount = tr.items.length - giveCount;
                 return (
-                  <tr key={t.id}>
+                  <tr key={tr.id}>
                     <td>
-                      <div className="is-flex is-align-items-center" style={{ gap: "0.5rem" }}>
+                      <div
+                        className="is-flex is-align-items-center"
+                        style={{ gap: "0.5rem" }}
+                      >
                         {other.image && (
-                          <Image src={other.image} alt="" width={24} height={24} style={{ borderRadius: "9999px" }} />
+                          <Image
+                            src={other.image}
+                            alt=""
+                            width={24}
+                            height={24}
+                            style={{ borderRadius: "9999px" }}
+                          />
                         )}
                         <Link href={other.handle ? `/u/${other.handle}` : "#"}>
                           {other.handle ? `@${other.handle}` : other.name ?? "unnamed"}
@@ -89,16 +111,18 @@ function Section({
                       </div>
                     </td>
                     <td>
-                      <span className={`tag ${STATUS_TONE[t.status]}`}>{t.status}</span>
+                      <span className={`tag ${STATUS_TONE[tr.status]}`}>
+                        {t(`tradeStatus.${tr.status}`)}
+                      </span>
                     </td>
                     <td>{giveCount}</td>
                     <td>{receiveCount}</td>
                     <td className="has-text-grey is-size-7">
-                      {new Date(t.updatedAt).toLocaleDateString()}
+                      {new Date(tr.updatedAt).toLocaleDateString()}
                     </td>
                     <td className="has-text-right">
-                      <Link href={`/trades/${t.id}`} className="button is-small is-light">
-                        Open
+                      <Link href={`/trades/${tr.id}`} className="button is-small is-light">
+                        {t("common.openBtn")}
                       </Link>
                     </td>
                   </tr>
