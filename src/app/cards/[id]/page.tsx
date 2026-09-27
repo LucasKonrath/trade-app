@@ -161,70 +161,61 @@ function ListingsSection({
       {listings.length === 0 ? (
         <div className="notification is-light">{empty}</div>
       ) : (
-        <div className="box p-0 trades-table-wrap">
-          <table className="table is-fullwidth is-hoverable mb-0">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Price</th>
-                <th>Condition</th>
-                <th>Qty</th>
-                <th>Note</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {listings.map((l) => (
-                <tr key={l.id}>
-                  <td>
-                    <div className="is-flex is-align-items-center" style={{ gap: "0.5rem" }}>
-                      {l.user.image && (
-                        <Image
-                          src={l.user.image}
-                          alt=""
-                          width={24}
-                          height={24}
-                          style={{ borderRadius: "9999px" }}
-                        />
+        <div className="listing-rows">
+          {listings.map((l) => (
+            <div key={l.id} className="box listing-row mb-2">
+              <div className="listing-row-main">
+                <div className="listing-row-user">
+                  {l.user.image && (
+                    <Image
+                      src={l.user.image}
+                      alt=""
+                      width={28}
+                      height={28}
+                      style={{ borderRadius: "9999px" }}
+                    />
+                  )}
+                  <div>
+                    <Link
+                      href={l.user.handle ? `/u/${l.user.handle}` : "#"}
+                      className="has-text-weight-semibold"
+                    >
+                      {l.user.handle ? `@${l.user.handle}` : l.user.name ?? "unnamed"}
+                    </Link>
+                    <div className="listing-row-meta">
+                      {l.priceCents != null ? (
+                        <span className="tag is-small is-primary is-light">
+                          {formatBRL(l.priceCents)}
+                          {l.offerType === "CASH_ONLY" ? " · cash" : ""}
+                        </span>
+                      ) : (
+                        <span className="tag is-small is-light">Trade only</span>
                       )}
-                      <Link href={l.user.handle ? `/u/${l.user.handle}` : "#"}>
-                        {l.user.handle ? `@${l.user.handle}` : l.user.name ?? "unnamed"}
-                      </Link>
-                    </div>
-                  </td>
-                  <td>
-                    {l.priceCents != null ? (
-                      <span className="tag is-primary is-light">
-                        {formatBRL(l.priceCents)}
-                        {l.offerType === "CASH_ONLY" ? " · cash" : ""}
+                      <span className="has-text-grey is-size-7">
+                        {l.condition ?? "—"} · qty {l.quantity}
                       </span>
-                    ) : (
-                      <span className="has-text-grey is-size-7">Trade only</span>
+                    </div>
+                    {l.note && (
+                      <div className="has-text-grey is-size-7 mt-1" style={{ lineHeight: 1.3 }}>
+                        {l.note}
+                      </div>
                     )}
-                  </td>
-                  <td className="has-text-grey is-size-7">{l.condition ?? "—"}</td>
-                  <td className="has-text-grey is-size-7">{l.quantity}</td>
-                  <td
-                    className="has-text-grey is-size-7"
-                    style={{ maxWidth: 260, whiteSpace: "normal" }}
-                  >
-                    {l.note ?? ""}
-                  </td>
-                  <td>
-                    {canPropose && (
-                      <ProposeListingButton
-                        ownerId={l.userId}
-                        cardId={cardId}
-                        kind={kind}
-                        offerType={l.offerType}
-                        priceCents={l.priceCents}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+                {canPropose && (
+                  <div className="listing-row-action">
+                    <ProposeListingButton
+                      ownerId={l.userId}
+                      cardId={cardId}
+                      kind={kind}
+                      offerType={l.offerType}
+                      priceCents={l.priceCents}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
