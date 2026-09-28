@@ -13,6 +13,7 @@ type Props = {
     id: string;
     offerType: OfferType;
     priceCents: number | null;
+    quantity: number;
   } | null;
   suggestedPriceCents?: number | null;
 };
@@ -41,6 +42,7 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
   );
   const [acceptTrades, setAcceptTrades] = useState(initial.acceptTrades);
   const [acceptCash, setAcceptCash] = useState(initial.acceptCash);
+  const [quantity, setQuantity] = useState(String(existing?.quantity ?? 1));
   const [error, setError] = useState<string | null>(null);
 
   const save = () => {
@@ -57,9 +59,17 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
         return;
       }
     }
+    const qty = Math.max(1, Math.min(999, Number(quantity) || 1));
     startTransition(async () => {
       try {
-        await saveListing({ cardId, kind, priceCents: cents, acceptTrades, acceptCash });
+        await saveListing({
+          cardId,
+          kind,
+          priceCents: cents,
+          acceptTrades,
+          acceptCash,
+          quantity: qty,
+        });
         setOpen(false);
       } catch (err) {
         setError((err as Error).message);
@@ -120,6 +130,7 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
             : t("cards.wantForCashOrTrade", { price: priceStr });
       }
     }
+    if (existing.quantity > 1) summary += ` · ${existing.quantity}×`;
     return (
       <button
         onClick={() => setOpen(true)}
@@ -156,6 +167,21 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
         />{" "}
         {cashLabel}
       </label>
+
+      <div className="field mb-2">
+        <label className="label is-size-7 has-text-grey mb-1">{t("listingChip.quantity")}</label>
+        <div className="control">
+          <input
+            type="number"
+            min={1}
+            max={999}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="input is-small"
+            style={{ maxWidth: 100 }}
+          />
+        </div>
+      </div>
 
       {acceptCash && (
         <div className="field mb-2">

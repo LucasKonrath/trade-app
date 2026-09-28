@@ -77,6 +77,7 @@ export default async function CardDetailPage({
                               id: myHave.id,
                               offerType: myHave.offerType,
                               priceCents: myHave.priceCents,
+                              quantity: myHave.quantity,
                             }
                           : null
                       }
@@ -94,6 +95,7 @@ export default async function CardDetailPage({
                               id: myWant.id,
                               offerType: myWant.offerType,
                               priceCents: myWant.priceCents,
+                              quantity: myWant.quantity,
                             }
                           : null
                       }

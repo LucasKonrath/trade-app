@@ -172,6 +172,7 @@ const SaveListingSchema = z.object({
   priceCents: z.number().int().min(1).max(10_000_000).nullable(),
   acceptTrades: z.boolean(),
   acceptCash: z.boolean(),
+  quantity: z.number().int().min(1).max(999).default(1),
 });
 
 /**
@@ -189,6 +190,7 @@ export async function saveListing(input: {
   priceCents: number | null;
   acceptTrades: boolean;
   acceptCash: boolean;
+  quantity?: number;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/signin");
@@ -217,14 +219,14 @@ export async function saveListing(input: {
         kind: parsed.kind,
       },
     },
-    update: { offerType, priceCents },
+    update: { offerType, priceCents, quantity: parsed.quantity },
     create: {
       userId: session.user.id,
       cardId: parsed.cardId,
       kind: parsed.kind,
       offerType,
       priceCents,
-      quantity: 1,
+      quantity: parsed.quantity,
     },
   });
 

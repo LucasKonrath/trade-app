@@ -68,6 +68,7 @@ export default async function CardsPage({
           kind: true,
           offerType: true,
           priceCents: true,
+          quantity: true,
         },
       })
     : [];
@@ -76,11 +77,17 @@ export default async function CardsPage({
     id: string;
     offerType: (typeof myListings)[number]["offerType"];
     priceCents: number | null;
+    quantity: number;
   };
   const byCard = new Map<string, { HAVE?: Bucket; WANT?: Bucket }>();
   for (const l of myListings) {
     const bucket = byCard.get(l.cardId) ?? {};
-    bucket[l.kind] = { id: l.id, offerType: l.offerType, priceCents: l.priceCents };
+    bucket[l.kind] = {
+      id: l.id,
+      offerType: l.offerType,
+      priceCents: l.priceCents,
+      quantity: l.quantity,
+    };
     byCard.set(l.cardId, bucket);
   }
 
