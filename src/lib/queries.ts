@@ -189,6 +189,45 @@ export async function findMatches(userId: string): Promise<Match[]> {
   return matches;
 }
 
+/**
+ * Number of trades where I need to act:
+ * - REQUESTED and I'm not the last proposer (someone sent me an offer / countered)
+ * - ACCEPTED where the other party has confirmed finish but I haven't
+ */
+export async function getPendingTradeCount(userId: string): Promise<number> {
+  const trades = await prisma.trade.findMany({
+    where: {
+      OR: [
+        { requesterId: userId, status: "REQUESTED" },
+        { responderId: userId, status: "REQUESTED" },
+        { requesterId: userId, status: "ACCEPTED" },
+        { responderId: userId, status: "ACCEPTED" },
+      ],
+    },
+    select: {
+      requesterId: true,
+      responderId: true,
+      status: true,
+      lastProposedById: true,
+      requesterFinishedAt: true,
+      responderFinishedAt: true,
+    },
+  });
+
+  let count = 0;
+  for (const t of trades) {
+    if (t.status === "REQUESTED") {
+      if (t.lastProposedById && t.lastProposedById !== userId) count += 1;
+    } else if (t.status === "ACCEPTED") {
+      const iAmRequester = t.requesterId === userId;
+      const myConfirmed = iAmRequester ? t.requesterFinishedAt : t.responderFinishedAt;
+      const otherConfirmed = iAmRequester ? t.responderFinishedAt : t.requesterFinishedAt;
+      if (!myConfirmed && otherConfirmed) count += 1;
+    }
+  }
+  return count;
+}
+
 export async function getMyTrades(userId: string) {
   // Requester sees all their trades (including OPEN drafts).
   // Responder only sees trades that have been sent (status != OPEN).

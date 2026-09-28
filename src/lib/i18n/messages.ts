@@ -263,6 +263,11 @@ export const MESSAGES = {
       confirmFinishFinal: "Finalizar a troca? As cartas vão sair dos anúncios dos dois lados.",
       breadcrumbTrades: "Trocas",
       noActions: "Sem ações disponíveis para o status {status}.",
+      counter: "Contra-proposta",
+      counterExplain: "Ajuste o valor em dinheiro e reenvie. Você pode negociar até chegarem em um acordo.",
+      sendCounter: "Enviar contra-proposta",
+      waitingOnOtherParty: "Aguardando resposta de {other}.",
+      yourTurn: "{other} propôs. Sua vez: aceitar, contra-propor ou recusar.",
     },
     profile: {
       summary: "{haves} TENHO · {wants} QUERO",
@@ -529,6 +534,11 @@ export const MESSAGES = {
       confirmFinishFinal: "Finalize the trade? Cards will be removed from both lists.",
       breadcrumbTrades: "Trades",
       noActions: "No actions available while the trade is {status}.",
+      counter: "Counter",
+      counterExplain: "Adjust the cash amount and re-send. Haggle until you both agree.",
+      sendCounter: "Send counter-offer",
+      waitingOnOtherParty: "Waiting on {other} to respond.",
+      yourTurn: "{other} proposed. Your turn: accept, counter, or decline.",
     },
     profile: {
       summary: "{haves} HAVE · {wants} WANT",

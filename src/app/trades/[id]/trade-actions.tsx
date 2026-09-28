@@ -1,13 +1,15 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   sendTrade,
   acceptTrade,
   confirmFinish,
   unconfirmFinish,
   deleteTrade,
+  counterTrade,
 } from "@/app/actions/trades";
+import { parseBRLInput } from "@/lib/money";
 import { useT } from "@/lib/i18n/client";
 import type { TradeStatus } from "@prisma/client";
 
@@ -18,6 +20,8 @@ type Props = {
   iGiveCount: number;
   iReceiveCount: number;
   cashCents: number | null;
+  lastProposedById: string | null;
+  myUserId: string;
   myConfirmed: boolean;
   otherConfirmed: boolean;
   otherHandle: string | null;
@@ -30,11 +34,26 @@ export function TradeActions({
   iGiveCount,
   iReceiveCount,
   cashCents,
+  lastProposedById,
+  myUserId,
   myConfirmed,
   otherConfirmed,
   otherHandle,
 }: Props) {
   const [pending, startTransition] = useTransition();
+  const [counterOpen, setCounterOpen] = useState(false);
+  const [counterCash, setCounterCash] = useState(
+    cashCents ? String(Math.abs(cashCents) / 100).replace(".", ",") : "",
+  );
+  const [counterDir, setCounterDir] = useState<"IN" | "OUT">(() => {
+    // "IN" means they pay me; "OUT" means I pay them.
+    const cash = cashCents ?? 0;
+    // Canonical: cash > 0 = responder pays requester
+    // For me: if I'm requester and cash > 0, they (responder) pay me → IN
+    if (iAmRequester) return cash >= 0 ? "IN" : "OUT";
+    return cash > 0 ? "OUT" : "IN";
+  });
+  const [counterError, setCounterError] = useState<string | null>(null);
   const t = useT();
 
   const run = (fn: (fd: FormData) => Promise<void>) => {
@@ -47,6 +66,31 @@ export function TradeActions({
         if ((err as Error).message !== "NEXT_REDIRECT") {
           alert((err as Error).message);
         }
+      }
+    });
+  };
+
+  const submitCounter = () => {
+    setCounterError(null);
+    let value: number | null = null;
+    const raw = counterCash.trim();
+    if (raw !== "") {
+      const cents = parseBRLInput(raw);
+      if (cents == null || cents <= 0) {
+        setCounterError(t("tradeDetail.invalidAmount"));
+        return;
+      }
+      // Convert from my-perspective direction to canonical (from requester's POV).
+      const myIsIn = counterDir === "IN";
+      const responderPaysRequester = iAmRequester ? myIsIn : !myIsIn;
+      value = responderPaysRequester ? cents : -cents;
+    }
+    startTransition(async () => {
+      try {
+        await counterTrade({ tradeId, cashCents: value });
+        setCounterOpen(false);
+      } catch (err) {
+        setCounterError((err as Error).message);
       }
     });
   };
@@ -80,38 +124,59 @@ export function TradeActions({
     );
   }
 
-  if (status === "REQUESTED" && !iAmRequester) {
-    buttons.push(
-      <button
-        key="accept"
-        onClick={() => run(acceptTrade)}
-        disabled={pending}
-        className={`button is-primary ${pending ? "is-loading" : ""}`}
-      >
-        {t("tradeDetail.accept")}
-      </button>,
-      <button
-        key="decline"
-        onClick={() => confirm(t("tradeDetail.confirmDecline")) && run(deleteTrade)}
-        disabled={pending}
-        className="button is-danger is-outlined"
-      >
-        {t("tradeDetail.decline")}
-      </button>,
-    );
-  }
-
-  if (status === "REQUESTED" && iAmRequester) {
-    buttons.push(
-      <button
-        key="cancel"
-        onClick={() => confirm(t("tradeDetail.confirmCancelRequest")) && run(deleteTrade)}
-        disabled={pending}
-        className="button is-light is-danger is-outlined"
-      >
-        {t("tradeDetail.cancelRequest")}
-      </button>,
-    );
+  if (status === "REQUESTED") {
+    const iAmLastProposer = lastProposedById === myUserId;
+    if (iAmLastProposer) {
+      // I proposed / countered most recently. Waiting on the other party.
+      banner = (
+        <div className="notification is-info is-light mb-3">
+          {t("tradeDetail.waitingOnOtherParty", { other: otherLabel })}
+        </div>
+      );
+      buttons.push(
+        <button
+          key="cancel"
+          onClick={() => confirm(t("tradeDetail.confirmCancelRequest")) && run(deleteTrade)}
+          disabled={pending}
+          className="button is-light is-danger is-outlined"
+        >
+          {t("tradeDetail.cancelRequest")}
+        </button>,
+      );
+    } else {
+      // Other party proposed / countered. My turn.
+      banner = (
+        <div className="notification is-warning mb-3">
+          {t("tradeDetail.yourTurn", { other: otherLabel })}
+        </div>
+      );
+      buttons.push(
+        <button
+          key="accept"
+          onClick={() => run(acceptTrade)}
+          disabled={pending}
+          className={`button is-primary ${pending ? "is-loading" : ""}`}
+        >
+          {t("tradeDetail.accept")}
+        </button>,
+        <button
+          key="counter"
+          onClick={() => setCounterOpen((o) => !o)}
+          disabled={pending}
+          className="button is-info is-outlined"
+        >
+          {counterOpen ? t("common.cancel") : t("tradeDetail.counter")}
+        </button>,
+        <button
+          key="decline"
+          onClick={() => confirm(t("tradeDetail.confirmDecline")) && run(deleteTrade)}
+          disabled={pending}
+          className="button is-danger is-outlined"
+        >
+          {t("tradeDetail.decline")}
+        </button>,
+      );
+    }
   }
 
   if (status === "ACCEPTED") {
@@ -191,6 +256,50 @@ export function TradeActions({
     <div>
       {banner}
       <div className="buttons">{buttons}</div>
+
+      {counterOpen && (
+        <div className="box mt-3">
+          <p className="is-size-7 has-text-grey mb-2">{t("tradeDetail.counterExplain")}</p>
+          <div
+            className="field is-grouped is-align-items-center"
+            style={{ flexWrap: "wrap", gap: "0.5rem" }}
+          >
+            <div className="control">
+              <div className="select is-small">
+                <select
+                  value={counterDir}
+                  onChange={(e) => setCounterDir(e.target.value as "IN" | "OUT")}
+                >
+                  <option value="IN">{t("tradeDetail.theyPayYou")}</option>
+                  <option value="OUT">{t("tradeDetail.youPayThem")}</option>
+                </select>
+              </div>
+            </div>
+            <div className="control has-icons-left">
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder={t("tradeDetail.cashPlaceholder")}
+                value={counterCash}
+                onChange={(e) => setCounterCash(e.target.value)}
+                className="input is-small"
+                style={{ maxWidth: 120 }}
+              />
+              <span className="icon is-small is-left is-size-7">R$</span>
+            </div>
+            <div className="control">
+              <button
+                onClick={submitCounter}
+                disabled={pending}
+                className={`button is-small is-primary ${pending ? "is-loading" : ""}`}
+              >
+                {t("tradeDetail.sendCounter")}
+              </button>
+            </div>
+          </div>
+          {counterError && <p className="help is-danger mt-2">{counterError}</p>}
+        </div>
+      )}
     </div>
   );
 }

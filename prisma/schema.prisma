@@ -177,6 +177,7 @@ model Trade {
   requesterFinishedAt   DateTime?
   responderFinishedAt   DateTime?
   cashCents             Int?      // + = responder pays requester; - = requester pays responder
+  lastProposedById      String?   // whoever sent or countered most recently
 
   requester User        @relation("RequesterTrades", fields: [requesterId], references: [id], onDelete: Cascade)
   responder User        @relation("ResponderTrades", fields: [responderId], references: [id], onDelete: Cascade)

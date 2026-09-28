@@ -169,10 +169,50 @@ export async function sendTrade(formData: FormData) {
 
   await prisma.trade.update({
     where: { id: tradeId },
-    data: { status: TradeStatus.REQUESTED },
+    data: {
+      status: TradeStatus.REQUESTED,
+      lastProposedById: me.id,
+    },
   });
 
   revalidatePath(`/trades/${tradeId}`);
+  revalidatePath("/trades");
+}
+
+const CounterSchema = z.object({
+  tradeId: z.string().cuid(),
+  cashCents: z.number().int().nullable(),
+});
+
+/**
+ * Counter-offer on a REQUESTED trade by adjusting the cash amount.
+ * Only the participant who ISN'T the current last proposer can counter.
+ * Cash is stored in canonical convention (positive = responder pays requester).
+ * The caller sends it in that same convention.
+ */
+export async function counterTrade(input: { tradeId: string; cashCents: number | null }) {
+  const me = await currentUser();
+  const parsed = CounterSchema.parse(input);
+
+  const trade = await prisma.trade.findUnique({ where: { id: parsed.tradeId } });
+  if (!trade) throw new Error("Trade not found");
+  assertParticipant(trade, me.id);
+  if (trade.status !== TradeStatus.REQUESTED) {
+    throw new Error("Only pending trades can be countered");
+  }
+  if (trade.lastProposedById === me.id) {
+    throw new Error("Waiting on the other party — you already proposed");
+  }
+
+  await prisma.trade.update({
+    where: { id: parsed.tradeId },
+    data: {
+      cashCents: parsed.cashCents,
+      lastProposedById: me.id,
+    },
+  });
+
+  revalidatePath(`/trades/${parsed.tradeId}`);
   revalidatePath("/trades");
 }
 
@@ -185,8 +225,11 @@ export async function acceptTrade(formData: FormData) {
 
   const trade = await prisma.trade.findUnique({ where: { id: tradeId } });
   if (!trade) throw new Error("Trade not found");
-  if (trade.responderId !== me.id) throw new Error("Only the responder can accept this trade");
+  assertParticipant(trade, me.id);
   if (trade.status !== TradeStatus.REQUESTED) throw new Error("Trade is not awaiting your response");
+  if (trade.lastProposedById === me.id) {
+    throw new Error("Waiting on the other party — you already proposed");
+  }
 
   await prisma.trade.update({
     where: { id: tradeId },

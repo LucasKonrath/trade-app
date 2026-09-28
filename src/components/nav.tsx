@@ -3,9 +3,11 @@ import { auth, signOut, signIn } from "@/auth";
 import { NavBurger } from "./nav-burger";
 import { LocaleSwitcher } from "./locale-switcher";
 import { getT } from "@/lib/i18n/server";
+import { getPendingTradeCount } from "@/lib/queries";
 
 export async function Nav() {
   const [session, { t }] = await Promise.all([auth(), getT()]);
+  const pendingTrades = session?.user ? await getPendingTradeCount(session.user.id) : 0;
 
   return (
     <nav className="navbar has-shadow brand-navbar" role="navigation" aria-label="main navigation">
@@ -31,6 +33,14 @@ export async function Nav() {
                 </Link>
                 <Link href="/trades" className="navbar-item">
                   {t("nav.trades")}
+                  {pendingTrades > 0 && (
+                    <span
+                      className="tag is-primary is-rounded ml-2"
+                      style={{ fontSize: "0.65rem", padding: "0 0.5em", height: "1.5em" }}
+                    >
+                      {pendingTrades}
+                    </span>
+                  )}
                 </Link>
                 <Link href="/me/listings" className="navbar-item">
                   {t("nav.myListings")}
