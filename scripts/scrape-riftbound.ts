@@ -24,6 +24,10 @@ type ApiCard = {
   imageUrl?: string;
   thumbnailUrl?: string;
   orientation?: string;
+  cardType?: string;
+  domain?: string[];
+  region?: string;
+  regions?: string[];
 };
 
 type Envelope = {
@@ -97,6 +101,8 @@ async function main() {
       envelope.cards.map((c) => {
         const setId = setIdByCode.get(c.setCode)!;
         const imageUrl = c.imageUrl ?? c.thumbnailUrl ?? null;
+        const domains = c.domain ?? [];
+        const regions = c.regions ?? (c.region ? [c.region] : []);
         return prisma.card.upsert({
           where: { gameId_externalId: { gameId: game.id, externalId: c.id } },
           update: {
@@ -105,6 +111,9 @@ async function main() {
             rarity: c.rarity ?? null,
             imageUrl,
             orientation: c.orientation ?? null,
+            cardType: c.cardType ?? null,
+            domains,
+            regions,
             setId,
           },
           create: {
@@ -116,6 +125,9 @@ async function main() {
             rarity: c.rarity ?? null,
             imageUrl,
             orientation: c.orientation ?? null,
+            cardType: c.cardType ?? null,
+            domains,
+            regions,
           },
         });
       })

@@ -5,16 +5,34 @@ import { ENABLED_GAMES } from "@/lib/config";
 export type CardSearchArgs = {
   q?: string;
   game?: GameSlug;
-  setId?: string;
+  setCode?: string;
+  rarity?: string;
+  cardType?: string;
+  domain?: string;
+  region?: string;
   take?: number;
   skip?: number;
 };
 
-export async function searchCards({ q, game, setId, take = 48, skip = 0 }: CardSearchArgs) {
+export async function searchCards({
+  q,
+  game,
+  setCode,
+  rarity,
+  cardType,
+  domain,
+  region,
+  take = 48,
+  skip = 0,
+}: CardSearchArgs) {
   const where: Prisma.CardWhereInput = {};
   const gameFilter: GameSlug[] = game && ENABLED_GAMES.includes(game) ? [game] : ENABLED_GAMES;
   where.game = { slug: { in: gameFilter } };
-  if (setId) where.setId = setId;
+  if (setCode) where.set = { code: setCode };
+  if (rarity) where.rarity = rarity;
+  if (cardType) where.cardType = cardType;
+  if (domain) where.domains = { has: domain };
+  if (region) where.regions = { has: region };
   if (q && q.trim()) where.name = { contains: q.trim(), mode: "insensitive" };
 
   const [items, total] = await Promise.all([
@@ -46,6 +64,52 @@ export async function getMyListings(userId: string) {
 }
 
 export type ListingIntent = "TRADE" | "CASH" | "ALL";
+
+/**
+ * Distinct values for the filter dropdowns on /cards.
+ * Scoped to currently enabled games.
+ */
+export async function getCardFilterOptions() {
+  const [sets, rarityRows, typeRows, domainRows, regionRows] = await Promise.all([
+    prisma.cardSet.findMany({
+      where: { game: { slug: { in: ENABLED_GAMES } } },
+      select: { code: true, name: true },
+      orderBy: [{ releaseDate: "desc" }, { name: "asc" }],
+    }),
+    prisma.card.findMany({
+      where: { rarity: { not: null }, game: { slug: { in: ENABLED_GAMES } } },
+      select: { rarity: true },
+      distinct: ["rarity"],
+      orderBy: { rarity: "asc" },
+    }),
+    prisma.card.findMany({
+      where: { cardType: { not: null }, game: { slug: { in: ENABLED_GAMES } } },
+      select: { cardType: true },
+      distinct: ["cardType"],
+      orderBy: { cardType: "asc" },
+    }),
+    prisma.$queryRaw<{ v: string }[]>`
+      SELECT DISTINCT unnest("domains") AS v
+      FROM "Card"
+      WHERE "gameId" IN (SELECT id FROM "Game" WHERE slug::text = ANY (${ENABLED_GAMES as string[]}))
+      ORDER BY v ASC
+    `,
+    prisma.$queryRaw<{ v: string }[]>`
+      SELECT DISTINCT unnest("regions") AS v
+      FROM "Card"
+      WHERE "gameId" IN (SELECT id FROM "Game" WHERE slug::text = ANY (${ENABLED_GAMES as string[]}))
+      ORDER BY v ASC
+    `,
+  ]);
+
+  return {
+    sets,
+    rarities: rarityRows.map((r) => r.rarity!).filter(Boolean),
+    cardTypes: typeRows.map((r) => r.cardType!).filter(Boolean),
+    domains: domainRows.map((r) => r.v),
+    regions: regionRows.map((r) => r.v),
+  };
+}
 
 export type BrowseArgs = {
   q?: string;

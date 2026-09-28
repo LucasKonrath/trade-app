@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { searchCards, getSuggestedPrices } from "@/lib/queries";
+import { searchCards, getSuggestedPrices, getCardFilterOptions } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ListingChip } from "@/components/listing-chip";
 import { GameSlug } from "@prisma/client";
@@ -11,7 +11,16 @@ import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { q?: string; game?: string; page?: string };
+type SearchParams = {
+  q?: string;
+  game?: string;
+  set?: string;
+  rarity?: string;
+  type?: string;
+  domain?: string;
+  region?: string;
+  page?: string;
+};
 
 const PAGE_SIZE = 48;
 
@@ -23,13 +32,27 @@ export default async function CardsPage({
   const params = await searchParams;
   const q = params.q?.trim() || "";
   const game = (params.game as GameSlug | undefined) ?? undefined;
+  const setCode = params.set?.trim() || undefined;
+  const rarity = params.rarity?.trim() || undefined;
+  const cardType = params.type?.trim() || undefined;
+  const domain = params.domain?.trim() || undefined;
+  const region = params.region?.trim() || undefined;
   const page = Math.max(1, Number(params.page) || 1);
 
-  const [session, { t }] = await Promise.all([auth(), getT()]);
+  const [session, { t }, filterOptions] = await Promise.all([
+    auth(),
+    getT(),
+    getCardFilterOptions(),
+  ]);
 
   const { items, total } = await searchCards({
     q,
     game,
+    setCode,
+    rarity,
+    cardType,
+    domain,
+    region,
     take: PAGE_SIZE,
     skip: (page - 1) * PAGE_SIZE,
   });
@@ -114,6 +137,72 @@ export default async function CardsPage({
                   {ENABLED_GAMES.includes(GameSlug.riftbound) && (
                     <option value="riftbound">{t("cards.riftbound")}</option>
                   )}
+                </select>
+              </div>
+            </div>
+          )}
+          <div className="control">
+            <div className="select">
+              <select name="set" defaultValue={setCode ?? ""}>
+                <option value="">{t("cards.allSets")}</option>
+                {filterOptions.sets.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="control">
+            <div className="select">
+              <select name="rarity" defaultValue={rarity ?? ""}>
+                <option value="">{t("cards.allRarities")}</option>
+                {filterOptions.rarities.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {filterOptions.cardTypes.length > 0 && (
+            <div className="control">
+              <div className="select">
+                <select name="type" defaultValue={cardType ?? ""}>
+                  <option value="">{t("cards.allTypes")}</option>
+                  {filterOptions.cardTypes.map((tp) => (
+                    <option key={tp} value={tp}>
+                      {tp}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+          {filterOptions.domains.length > 0 && (
+            <div className="control">
+              <div className="select">
+                <select name="domain" defaultValue={domain ?? ""}>
+                  <option value="">{t("cards.allDomains")}</option>
+                  {filterOptions.domains.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+          {filterOptions.regions.length > 0 && (
+            <div className="control">
+              <div className="select">
+                <select name="region" defaultValue={region ?? ""}>
+                  <option value="">{t("cards.allRegions")}</option>
+                  {filterOptions.regions.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -211,7 +300,10 @@ export default async function CardsPage({
           <nav className="pagination is-centered mt-5" role="navigation">
             {page > 1 ? (
               <Link
-                href={{ pathname: "/cards", query: { q, game, page: page - 1 } }}
+                href={{
+                pathname: "/cards",
+                query: { q, game, set: setCode, rarity, type: cardType, domain, region, page: page - 1 },
+              }}
                 className="pagination-previous"
               >
                 {t("common.previous")}
@@ -223,7 +315,10 @@ export default async function CardsPage({
             )}
             {page < pages ? (
               <Link
-                href={{ pathname: "/cards", query: { q, game, page: page + 1 } }}
+                href={{
+                pathname: "/cards",
+                query: { q, game, set: setCode, rarity, type: cardType, domain, region, page: page + 1 },
+              }}
                 className="pagination-next"
               >
                 {t("common.next")}
