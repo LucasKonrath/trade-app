@@ -502,6 +502,62 @@ export async function getSuggestedPrices(
   return out;
 }
 
+export type TraderRow = {
+  id: string;
+  handle: string;
+  name: string | null;
+  image: string | null;
+  haves: number;
+  wants: number;
+};
+
+/**
+ * Every user with a handle, plus their HAVE/WANT counts scoped to
+ * enabled games. Sorted by total activity (haves + wants desc), then
+ * alphabetical by handle.
+ */
+export async function getTraders(): Promise<TraderRow[]> {
+  const [users, counts] = await Promise.all([
+    prisma.user.findMany({
+      where: { handle: { not: null } },
+      select: { id: true, handle: true, name: true, image: true },
+    }),
+    prisma.listing.groupBy({
+      by: ["userId", "kind"],
+      where: { card: { game: { slug: { in: ENABLED_GAMES } } } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const byUser = new Map<string, { haves: number; wants: number }>();
+  for (const c of counts) {
+    const entry = byUser.get(c.userId) ?? { haves: 0, wants: 0 };
+    if (c.kind === "HAVE") entry.haves = c._count._all;
+    else entry.wants = c._count._all;
+    byUser.set(c.userId, entry);
+  }
+
+  const rows: TraderRow[] = users.map((u) => {
+    const c = byUser.get(u.id) ?? { haves: 0, wants: 0 };
+    return {
+      id: u.id,
+      handle: u.handle!,
+      name: u.name,
+      image: u.image,
+      haves: c.haves,
+      wants: c.wants,
+    };
+  });
+
+  rows.sort((a, b) => {
+    const totalDiff = b.haves + b.wants - (a.haves + a.wants);
+    if (totalDiff !== 0) return totalDiff;
+    return a.handle.localeCompare(b.handle);
+  });
+
+  return rows;
+}
+
 export async function getCardsByIds(ids: string[]) {
   if (ids.length === 0) return [];
   return prisma.card.findMany({

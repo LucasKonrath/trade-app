@@ -130,6 +130,15 @@
   white-space: nowrap;
 }
 
+/* Trader cards on /users — subtle hover to indicate they're links */
+.user-card {
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.user-card:hover {
+  box-shadow: 0 4px 12px rgba(10, 30, 66, 0.15);
+  transform: translateY(-1px);
+}
+
 /* Listing rows on card detail page — responsive without horizontal scroll */
 .listing-row {
   padding: 0.75rem 1rem;

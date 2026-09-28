@@ -22,6 +22,7 @@ export const MESSAGES = {
       brand: "Trade App",
       cards: "Cartas",
       browse: "Explorar",
+      users: "Jogadores",
       matches: "Matches",
       trades: "Trocas",
       myListings: "Meus anúncios",
@@ -280,6 +281,13 @@ export const MESSAGES = {
       wantTitle: "QUERO",
       noneListed: "Nenhum anúncio.",
     },
+    users: {
+      title: "Jogadores",
+      summary: "{count} jogadores no LGS · {active} com anúncios ativos",
+      empty: "Ninguém entrou ainda.",
+      havesLabel: "{count} TENHO",
+      wantsLabel: "{count} QUERO",
+    },
   },
   en: {
     common: {
@@ -298,6 +306,7 @@ export const MESSAGES = {
       brand: "Trade App",
       cards: "Cards",
       browse: "Browse",
+      users: "Traders",
       matches: "Matches",
       trades: "Trades",
       myListings: "My listings",
@@ -555,6 +564,13 @@ export const MESSAGES = {
       haveTitle: "HAVE",
       wantTitle: "WANT",
       noneListed: "None listed.",
+    },
+    users: {
+      title: "Traders",
+      summary: "{count} traders at the LGS · {active} with active listings",
+      empty: "No one's here yet.",
+      havesLabel: "{count} HAVE",
+      wantsLabel: "{count} WANT",
     },
   },
 } as const;

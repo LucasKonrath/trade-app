@@ -26,6 +26,9 @@ export async function Nav() {
             <Link href="/browse" className="navbar-item">
               {t("nav.browse")}
             </Link>
+            <Link href="/users" className="navbar-item">
+              {t("nav.users")}
+            </Link>
             {session?.user && (
               <>
                 <Link href="/matches" className="navbar-item">
