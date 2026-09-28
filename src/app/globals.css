@@ -130,6 +130,49 @@
   white-space: nowrap;
 }
 
+/* Trade comment thread */
+.comment-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comment-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.comment-row.is-mine {
+  justify-content: flex-end;
+}
+
+.comment-bubble {
+  max-width: 75%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background-color: hsl(0, 0%, 96%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.comment-row.is-mine .comment-bubble {
+  background-color: hsl(35, 82%, 88%);
+}
+
+.comment-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+
+.comment-time {
+  font-size: 0.65rem;
+  color: hsl(0, 0%, 48%);
+  align-self: flex-end;
+}
+
 /* Trader cards on /users — subtle hover to indicate they're links */
 .user-card {
   transition: box-shadow 0.15s ease, transform 0.15s ease;

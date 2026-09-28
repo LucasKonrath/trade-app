@@ -6,6 +6,7 @@ import { getTradeForUser } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { TradeActions } from "./trade-actions";
 import { CashEditor } from "./cash-editor";
+import { TradeComments } from "./trade-comments";
 import { formatBRL } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
 import { TradeStatus, TradeDirection } from "@prisma/client";
@@ -176,6 +177,12 @@ export default async function TradePage({
             )}
           </div>
         </div>
+
+        <TradeComments
+          tradeId={trade.id}
+          comments={trade.comments}
+          myUserId={session.user.id}
+        />
 
         <div className="mt-5">
           <TradeActions

@@ -336,6 +336,34 @@ export async function unconfirmFinish(formData: FormData) {
   revalidatePath("/trades");
 }
 
+const CommentSchema = z.object({
+  tradeId: z.string().cuid(),
+  body: z.string().trim().min(1).max(500),
+});
+
+/**
+ * Post a comment on a trade. Only participants can comment; any status is fine
+ * (draft, in negotiation, accepted, finished — useful for closing notes).
+ */
+export async function addTradeComment(input: { tradeId: string; body: string }) {
+  const me = await currentUser();
+  const parsed = CommentSchema.parse(input);
+
+  const trade = await prisma.trade.findUnique({ where: { id: parsed.tradeId } });
+  if (!trade) throw new Error("Trade not found");
+  assertParticipant(trade, me.id);
+  // Also block responder from seeing an OPEN draft (parity with getTradeForUser).
+  if (trade.status === TradeStatus.OPEN && trade.requesterId !== me.id) {
+    throw new Error("Trade not found");
+  }
+
+  await prisma.tradeComment.create({
+    data: { tradeId: parsed.tradeId, userId: me.id, body: parsed.body },
+  });
+
+  revalidatePath(`/trades/${parsed.tradeId}`);
+}
+
 /**
  * Hard-delete a trade. Requester can delete OPEN; either party can decline REQUESTED
  * or cancel ACCEPTED. FINISHED trades cannot be deleted (history).

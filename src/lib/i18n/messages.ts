@@ -289,6 +289,13 @@ export const MESSAGES = {
       havesLabel: "{count} TENHO",
       wantsLabel: "{count} QUERO",
     },
+    comments: {
+      title: "Conversa",
+      empty: "Nenhuma mensagem ainda. Combine detalhes da troca aqui.",
+      placeholder: "Escreva uma mensagem…",
+      send: "Enviar",
+      remaining: "{count} restantes",
+    },
   },
   en: {
     common: {
@@ -573,6 +580,13 @@ export const MESSAGES = {
       empty: "No one's here yet.",
       havesLabel: "{count} HAVE",
       wantsLabel: "{count} WANT",
+    },
+    comments: {
+      title: "Conversation",
+      empty: "No messages yet. Sort out the details here.",
+      placeholder: "Write a message…",
+      send: "Send",
+      remaining: "{count} left",
     },
   },
 } as const;

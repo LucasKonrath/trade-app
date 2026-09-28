@@ -327,6 +327,12 @@ export async function getTradeForUser(tradeId: string, userId: string) {
           },
         },
       },
+      comments: {
+        include: {
+          user: { select: { id: true, handle: true, name: true, image: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
   if (!trade) return null;

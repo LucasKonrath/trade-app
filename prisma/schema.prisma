@@ -22,8 +22,9 @@ model User {
   accounts        Account[]
   sessions        Session[]
   listings        Listing[]
-  requesterTrades Trade[]   @relation("RequesterTrades")
-  responderTrades Trade[]   @relation("ResponderTrades")
+  requesterTrades Trade[]        @relation("RequesterTrades")
+  responderTrades Trade[]        @relation("ResponderTrades")
+  tradeComments   TradeComment[]
 }
 
 model Account {
@@ -184,12 +185,26 @@ model Trade {
   cashCents             Int?      // + = responder pays requester; - = requester pays responder
   lastProposedById      String?   // whoever sent or countered most recently
 
-  requester User        @relation("RequesterTrades", fields: [requesterId], references: [id], onDelete: Cascade)
-  responder User        @relation("ResponderTrades", fields: [responderId], references: [id], onDelete: Cascade)
+  requester User           @relation("RequesterTrades", fields: [requesterId], references: [id], onDelete: Cascade)
+  responder User           @relation("ResponderTrades", fields: [responderId], references: [id], onDelete: Cascade)
   items     TradeItem[]
+  comments  TradeComment[]
 
   @@index([requesterId, status])
   @@index([responderId, status])
+}
+
+model TradeComment {
+  id        String   @id @default(cuid())
+  tradeId   String
+  userId    String
+  body      String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tradeId, createdAt])
 }
 
 model TradeItem {
