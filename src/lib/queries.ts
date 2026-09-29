@@ -664,6 +664,144 @@ export async function getCardsByIds(ids: string[]) {
   });
 }
 
+/* --------------------------------------------------------------------------
+ * Homepage feed
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Recent HAVE + WANT listings from the viewer's community, in their games,
+ * excluding their own. Anonymous viewers get everything unfiltered.
+ */
+export async function getRecentListings(
+  viewerId: string | null,
+  take = 12,
+): Promise<
+  {
+    id: string;
+    kind: ListingKind;
+    createdAt: Date;
+    quantity: number;
+    priceCents: number | null;
+    offerType: OfferType;
+    userId: string;
+    user: { handle: string | null; name: string | null; image: string | null };
+    card: {
+      id: string;
+      name: string;
+      imageUrl: string | null;
+      number: string | null;
+      rarity: string | null;
+      orientation: string | null;
+      set: { name: string };
+      game: { slug: string };
+    };
+  }[]
+> {
+  const viewerGames = await getViewerGameSlugs(viewerId);
+  const visibleIds = await getVisibleUserIds(viewerId, "primary");
+  const where: Prisma.ListingWhereInput = {
+    card: { game: { slug: { in: viewerGames } } },
+  };
+  if (viewerId) where.userId = { not: viewerId };
+  if (visibleIds !== null) {
+    where.userId = viewerId
+      ? { in: visibleIds, not: viewerId }
+      : { in: visibleIds };
+  }
+
+  return prisma.listing.findMany({
+    where,
+    include: {
+      user: { select: { handle: true, name: true, image: true } },
+      card: {
+        include: {
+          set: { select: { name: true } },
+          game: { select: { slug: true } },
+        },
+      },
+    },
+    orderBy: [{ createdAt: "desc" }],
+    take,
+  });
+}
+
+/**
+ * Recently completed trades where at least one participant shares an LGS
+ * with the viewer (or all trades for anonymous viewers).
+ */
+export async function getRecentFinishedTrades(viewerId: string | null, take = 6) {
+  const visibleIds = await getVisibleUserIds(viewerId, "primary");
+  const where: Prisma.TradeWhereInput = { status: "FINISHED" };
+  if (visibleIds !== null) {
+    where.OR = [
+      { requesterId: { in: visibleIds } },
+      { responderId: { in: visibleIds } },
+    ];
+  }
+  return prisma.trade.findMany({
+    where,
+    include: {
+      requester: { select: { id: true, handle: true, name: true, image: true } },
+      responder: { select: { id: true, handle: true, name: true, image: true } },
+      items: {
+        include: {
+          card: {
+            include: {
+              set: { select: { name: true } },
+              game: { select: { slug: true } },
+            },
+          },
+        },
+        take: 4,
+      },
+    },
+    orderBy: [{ finishedAt: "desc" }],
+    take,
+  });
+}
+
+/**
+ * Community stats (this week + all-time) — scoped to the viewer's LGSs.
+ */
+export async function getCommunityStats(viewerId: string | null) {
+  const visibleIds = await getVisibleUserIds(viewerId, "primary");
+  const viewerGames = await getViewerGameSlugs(viewerId);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const scopedUsersFilter = visibleIds !== null ? { in: visibleIds } : undefined;
+
+  const [traders, activeListings, tradesThisWeek] = await Promise.all([
+    prisma.user.count({
+      where: {
+        handle: { not: null },
+        ...(scopedUsersFilter ? { id: scopedUsersFilter } : {}),
+      },
+    }),
+    prisma.listing.count({
+      where: {
+        card: { game: { slug: { in: viewerGames } } },
+        ...(scopedUsersFilter ? { userId: scopedUsersFilter } : {}),
+      },
+    }),
+    prisma.trade.count({
+      where: {
+        status: "FINISHED",
+        finishedAt: { gte: weekAgo },
+        ...(visibleIds
+          ? {
+              OR: [
+                { requesterId: { in: visibleIds } },
+                { responderId: { in: visibleIds } },
+              ],
+            }
+          : {}),
+      },
+    }),
+  ]);
+
+  return { traders, activeListings, tradesThisWeek };
+}
+
 export async function getUserGameInterests(userId: string): Promise<GameSlug[]> {
   const rows = await prisma.userGameInterest.findMany({
     where: { userId },
