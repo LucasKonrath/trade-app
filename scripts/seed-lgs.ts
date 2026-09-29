@@ -12,8 +12,8 @@ import { PrismaClient, LgsRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const SEED_SLUG = "riftbound-br";
-const SEED_NAME = "Comunidade Riftbound BR";
+const SEED_SLUG = "taverna-turno-extra";
+const SEED_NAME = "Taverna Turno Extra";
 const SEED_CITY = "Brasil";
 const OWNER_EMAIL = "lucaskdamaceno@gmail.com";
 
