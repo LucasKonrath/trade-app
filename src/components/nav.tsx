@@ -77,19 +77,23 @@ export async function Nav() {
             </div>
             <div className="navbar-item">
               {session?.user ? (
-                <form
-                  action={async () => {
-                    "use server";
-                    await signOut({ redirectTo: "/" });
-                  }}
-                  className="is-flex is-align-items-center"
-                  style={{ gap: "0.75rem" }}
-                >
-                  <span className="has-text-grey-light is-size-7">
+                <div className="is-flex is-align-items-center" style={{ gap: "0.75rem" }}>
+                  <Link
+                    href="/me/preferences"
+                    className="has-text-grey-light is-size-7"
+                    style={{ textDecoration: "none" }}
+                  >
                     {session.user.handle ? `@${session.user.handle}` : session.user.email}
-                  </span>
-                  <button className="button is-light is-small">{t("nav.signOut")}</button>
-                </form>
+                  </Link>
+                  <form
+                    action={async () => {
+                      "use server";
+                      await signOut({ redirectTo: "/" });
+                    }}
+                  >
+                    <button className="button is-light is-small">{t("nav.signOut")}</button>
+                  </form>
+                </div>
               ) : (
                 <form
                   action={async () => {

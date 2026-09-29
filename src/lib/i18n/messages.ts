@@ -296,6 +296,26 @@ export const MESSAGES = {
       send: "Enviar",
       remaining: "{count} restantes",
     },
+    games: {
+      myGamesTitle: "Meus jogos",
+      myGamesHint:
+        "Escolha os jogos que te interessam. Cartas, anúncios e matches vão filtrar por essa escolha.",
+      pickOne: "Escolha pelo menos um jogo",
+      save: "Salvar preferências",
+      saved: "Preferências salvas",
+    },
+    preferences: {
+      title: "Preferências",
+      subtitle: "Gerencie seus jogos, LGSs e informações da conta.",
+      lgsSectionTitle: "Meus LGSs",
+      lgsHint:
+        "Você pode ser membro de mais de um LGS. O principal é o padrão nas listas.",
+      noLgsYet: "Você ainda não é membro de nenhum LGS.",
+      browseAllLgs: "Ver todos os LGSs",
+      accountSectionTitle: "Conta",
+      handleLabel: "Usuário",
+      emailLabel: "Email",
+    },
     lgs: {
       title: "LGSs",
       navLabel: "LGS",
@@ -622,6 +642,18 @@ export const MESSAGES = {
       pickOne: "Pick at least one game",
       save: "Save preferences",
       saved: "Preferences saved",
+    },
+    preferences: {
+      title: "Preferences",
+      subtitle: "Manage your games, LGSs, and account info.",
+      lgsSectionTitle: "My LGSs",
+      lgsHint:
+        "You can be a member of multiple LGSs. Your primary one is the default across the app.",
+      noLgsYet: "You're not a member of any LGS yet.",
+      browseAllLgs: "Browse all LGSs",
+      accountSectionTitle: "Account",
+      handleLabel: "Handle",
+      emailLabel: "Email",
     },
     lgs: {
       title: "LGSs",
