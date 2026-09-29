@@ -21,7 +21,7 @@ export const MESSAGES = {
     nav: {
       brand: "Mulligan",
       cards: "Cartas",
-      browse: "Explorar",
+      browse: "Anúncios",
       users: "Jogadores",
       matches: "Matches",
       trades: "Trocas",
@@ -340,7 +340,7 @@ export const MESSAGES = {
     nav: {
       brand: "Mulligan",
       cards: "Cards",
-      browse: "Browse",
+      browse: "Listings",
       users: "Traders",
       matches: "Matches",
       trades: "Trades",
