@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Space_Grotesk } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import { Nav } from "@/components/nav";
@@ -11,6 +11,12 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "Mulligan",
   description: "Descarte, compre e troque cartas com o pessoal do seu LGS.",
@@ -19,7 +25,11 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={geistSans.variable}>
+    <html
+      lang={locale}
+      className={`${geistSans.variable} ${spaceGrotesk.variable}`}
+      data-theme="dark"
+    >
       <body suppressHydrationWarning>
         <LocaleProvider locale={locale}>
           <SessionProvider>

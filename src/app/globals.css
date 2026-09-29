@@ -1,67 +1,595 @@
 @import "bulma/css/bulma.min.css";
 
+/* --------------------------------------------------------------------------
+   Design tokens — Mulligan dark TCG palette
+   -------------------------------------------------------------------------- */
 :root {
-  /* Riftbound brand palette */
-  --brand-navy: #0a1e42;
-  --brand-navy-dark: #061530;
-  --brand-navy-light: #17305c;
-  --brand-orange: #e89419;
-  --brand-orange-dark: #c67c11;
+  /* Base greys / navys */
+  --mul-bg: hsl(219, 42%, 7%);
+  --mul-bg-elev-1: hsl(219, 32%, 11%);
+  --mul-bg-elev-2: hsl(219, 28%, 15%);
+  --mul-bg-elev-3: hsl(219, 24%, 20%);
+  --mul-border: hsla(38, 25%, 85%, 0.08);
+  --mul-border-strong: hsla(38, 25%, 85%, 0.16);
+  --mul-border-hover: hsla(35, 82%, 60%, 0.6);
 
-  /* Remap Bulma primary → Riftbound orange */
+  /* Typography colors */
+  --mul-text: hsl(38, 30%, 92%);
+  --mul-text-strong: hsl(38, 32%, 98%);
+  --mul-text-muted: hsl(38, 15%, 65%);
+  --mul-text-dim: hsl(38, 8%, 45%);
+
+  /* Brand accents */
+  --mul-orange: hsl(35, 82%, 55%);
+  --mul-orange-bright: hsl(35, 88%, 62%);
+  --mul-orange-dim: hsl(35, 60%, 40%);
+  --mul-gold: hsl(45, 82%, 58%);
+  --mul-emerald: hsl(150, 50%, 48%);
+  --mul-cyan: hsl(200, 65%, 55%);
+  --mul-red: hsl(0, 68%, 58%);
+
+  /* Elevation shadows */
+  --mul-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --mul-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --mul-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --mul-glow-orange: 0 0 0 1px hsla(35, 82%, 60%, 0.6),
+    0 12px 32px hsla(35, 82%, 60%, 0.18);
+
+  --mul-radius-sm: 6px;
+  --mul-radius-md: 10px;
+  --mul-radius-lg: 14px;
+
+  --mul-motion: 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* Fonts */
+  --mul-font-display: var(--font-space-grotesk), var(--font-geist-sans), sans-serif;
+  --mul-font-body: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  /* Bulma theme overrides */
+  --bulma-body-background-color: var(--mul-bg);
+  --bulma-body-color: var(--mul-text);
+  --bulma-text: var(--mul-text);
+  --bulma-text-strong: var(--mul-text-strong);
+  --bulma-text-weak: var(--mul-text-muted);
+  --bulma-scheme-main: var(--mul-bg);
+  --bulma-scheme-main-bis: var(--mul-bg-elev-1);
+  --bulma-scheme-main-ter: var(--mul-bg-elev-2);
+  --bulma-background: var(--mul-bg-elev-1);
+  --bulma-border: var(--mul-border);
+  --bulma-border-weak: var(--mul-border);
+  --bulma-border-hover: var(--mul-border-hover);
+
   --bulma-primary-h: 35;
   --bulma-primary-s: 82%;
-  --bulma-primary-l: 51%;
+  --bulma-primary-l: 55%;
 
-  /* Remap Bulma link → Riftbound navy */
-  --bulma-link-h: 219;
-  --bulma-link-s: 75%;
-  --bulma-link-l: 28%;
+  --bulma-link-h: 35;
+  --bulma-link-s: 82%;
+  --bulma-link-l: 62%;
 
-  /* Slightly warm body background */
-  --bulma-body-background-color: hsl(35, 25%, 97%);
+  --bulma-warning-h: 45;
+  --bulma-warning-s: 82%;
+  --bulma-warning-l: 58%;
+  --bulma-success-h: 150;
+  --bulma-success-s: 50%;
+  --bulma-success-l: 48%;
+  --bulma-info-h: 200;
+  --bulma-info-s: 65%;
+  --bulma-info-l: 55%;
+  --bulma-danger-h: 0;
+  --bulma-danger-s: 68%;
+  --bulma-danger-l: 58%;
 }
 
-/* Navy nav + hero */
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+html,
+body {
+  background: var(--mul-bg);
+  color: var(--mul-text);
+}
+
+body {
+  font-family: var(--mul-font-body);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      hsla(35, 82%, 55%, 0.06),
+      transparent 60%
+    ),
+    linear-gradient(180deg, hsl(219, 42%, 6%) 0%, hsl(219, 42%, 8%) 100%);
+  background-attachment: fixed;
+}
+
+main.page {
+  flex: 1;
+}
+
+/* Typography hierarchy */
+.title,
+h1,
+h2,
+h3 {
+  font-family: var(--mul-font-display);
+  letter-spacing: -0.02em;
+  color: var(--mul-text-strong);
+}
+
+.subtitle {
+  color: var(--mul-text-muted);
+}
+
+.section .title {
+  color: var(--mul-text-strong);
+}
+
+/* --------------------------------------------------------------------------
+   Nav
+   -------------------------------------------------------------------------- */
+.navbar {
+  background: transparent !important;
+}
+
 .navbar.brand-navbar {
-  background-color: var(--brand-navy);
-  border-bottom: 3px solid var(--brand-orange);
+  background: linear-gradient(
+    180deg,
+    hsla(219, 42%, 5%, 0.95),
+    hsla(219, 42%, 8%, 0.85)
+  ) !important;
+  border-bottom: 1px solid var(--mul-border);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+.navbar.brand-navbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsla(35, 82%, 55%, 0.9) 20%,
+    hsla(35, 82%, 55%, 0.9) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 
 .navbar.brand-navbar .navbar-item {
-  color: hsl(0, 0%, 92%);
+  color: var(--mul-text) !important;
+  transition: color var(--mul-motion), background var(--mul-motion);
 }
 
-.navbar.brand-navbar .navbar-item:hover,
-.navbar.brand-navbar a.navbar-item:hover {
-  background-color: var(--brand-navy-light);
-  color: var(--brand-orange);
+.navbar.brand-navbar a.navbar-item:hover,
+.navbar.brand-navbar .navbar-item:hover {
+  background: hsla(35, 82%, 55%, 0.1) !important;
+  color: var(--mul-orange-bright) !important;
 }
 
 .navbar.brand-navbar .navbar-brand .navbar-item {
-  color: #fff;
+  color: var(--mul-text-strong) !important;
+  font-family: var(--mul-font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
 .hero.brand-hero {
-  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-light) 100%);
-  color: hsl(0, 0%, 96%);
+  background:
+    radial-gradient(
+      ellipse 60% 80% at 20% 20%,
+      hsla(35, 82%, 45%, 0.15),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 60% at 80% 80%,
+      hsla(200, 65%, 40%, 0.15),
+      transparent 60%
+    ),
+    linear-gradient(135deg, hsl(219, 42%, 8%) 0%, hsl(219, 32%, 12%) 100%);
+  color: var(--mul-text-strong);
+  position: relative;
+  overflow: hidden;
 }
 
-.hero.brand-hero .title,
+.hero.brand-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      to right,
+      hsla(38, 25%, 85%, 0.03) 1px,
+      transparent 1px
+    );
+  background-size: 24px 24px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 100%);
+}
+
+.hero.brand-hero .title {
+  color: var(--mul-text-strong);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
 .hero.brand-hero .subtitle {
-  color: hsl(0, 0%, 96%);
+  color: var(--mul-text-muted);
 }
 
-.hero.brand-hero .subtitle {
-  color: hsl(35, 30%, 82%);
+/* --------------------------------------------------------------------------
+   Boxes & panels — the "table" the app sits on
+   -------------------------------------------------------------------------- */
+.box {
+  background: var(--mul-bg-elev-1);
+  color: var(--mul-text);
+  border: 1px solid var(--mul-border);
+  border-radius: var(--mul-radius-md);
+  box-shadow: var(--mul-shadow-sm);
 }
 
-/* Section titles get a subtle brand accent */
-.section .title {
-  color: var(--brand-navy);
+.notification {
+  background: var(--mul-bg-elev-1);
+  color: var(--mul-text);
+  border: 1px solid var(--mul-border);
+  border-radius: var(--mul-radius-md);
 }
 
-/* Filter rows: horizontal on tablet+, stack full-width on mobile */
+.notification.is-light {
+  background: var(--mul-bg-elev-1);
+  color: var(--mul-text-muted);
+}
+
+.notification.is-info.is-light {
+  background: hsla(200, 65%, 40%, 0.12);
+  color: hsl(200, 60%, 78%);
+  border-color: hsla(200, 65%, 55%, 0.3);
+}
+
+.notification.is-warning {
+  background: hsla(45, 82%, 45%, 0.15);
+  color: hsl(45, 70%, 82%);
+  border-color: hsla(45, 82%, 58%, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   Cards — the star of the show
+   -------------------------------------------------------------------------- */
+.card {
+  background: var(--mul-bg-elev-1);
+  color: var(--mul-text);
+  box-shadow: none;
+}
+
+.card.card-tile {
+  background: var(--mul-bg-elev-1);
+  border: 1px solid var(--mul-border);
+  border-radius: var(--mul-radius-md);
+  overflow: hidden;
+  transition: transform var(--mul-motion), box-shadow var(--mul-motion),
+    border-color var(--mul-motion);
+  position: relative;
+}
+
+.card.card-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--mul-border-hover);
+  box-shadow: var(--mul-glow-orange);
+}
+
+.card-tile .card-image {
+  background: hsl(219, 40%, 5%);
+  border-bottom: 1px solid var(--mul-border);
+}
+
+.card-tile .card-image .image img {
+  object-fit: contain;
+}
+
+.card-tile .card-content {
+  padding: 0.6rem 0.65rem;
+}
+
+.card-name {
+  font-family: var(--mul-font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  color: var(--mul-text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  font-size: 0.7rem;
+  color: var(--mul-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+.button {
+  background: var(--mul-bg-elev-2);
+  color: var(--mul-text);
+  border: 1px solid var(--mul-border-strong);
+  border-radius: var(--mul-radius-sm);
+  transition: background var(--mul-motion), border-color var(--mul-motion),
+    transform var(--mul-motion), box-shadow var(--mul-motion);
+  font-weight: 500;
+}
+
+.button:hover:not([disabled]) {
+  background: var(--mul-bg-elev-3);
+  border-color: var(--mul-border-hover);
+  color: var(--mul-text-strong);
+}
+
+.button:active:not([disabled]) {
+  transform: translateY(1px);
+}
+
+.button.is-primary {
+  background: linear-gradient(180deg, var(--mul-orange-bright), var(--mul-orange));
+  border: 1px solid hsla(35, 82%, 45%, 0.8);
+  color: hsl(219, 42%, 10%);
+  font-weight: 600;
+  box-shadow: 0 2px 6px hsla(35, 82%, 45%, 0.25);
+}
+
+.button.is-primary:hover:not([disabled]) {
+  background: linear-gradient(180deg, hsl(35, 88%, 66%), hsl(35, 82%, 58%));
+  border-color: hsla(35, 82%, 50%, 0.9);
+  color: hsl(219, 42%, 8%);
+  box-shadow: 0 4px 12px hsla(35, 82%, 45%, 0.35);
+}
+
+.button.is-light {
+  background: hsla(38, 25%, 85%, 0.05);
+  color: var(--mul-text);
+  border-color: var(--mul-border);
+}
+
+.button.is-light:hover:not([disabled]) {
+  background: hsla(38, 25%, 85%, 0.1);
+  color: var(--mul-text-strong);
+}
+
+.button.is-success {
+  background: linear-gradient(180deg, hsl(150, 50%, 52%), hsl(150, 50%, 42%));
+  border: 1px solid hsla(150, 50%, 35%, 0.8);
+  color: hsl(150, 40%, 10%);
+  font-weight: 600;
+}
+
+.button.is-warning {
+  background: linear-gradient(180deg, hsl(45, 82%, 62%), hsl(45, 82%, 52%));
+  border: 1px solid hsla(45, 82%, 40%, 0.8);
+  color: hsl(45, 60%, 10%);
+  font-weight: 600;
+}
+
+.button.is-info {
+  background: linear-gradient(180deg, hsl(200, 65%, 60%), hsl(200, 65%, 50%));
+  border: 1px solid hsla(200, 65%, 40%, 0.8);
+  color: hsl(200, 60%, 10%);
+  font-weight: 600;
+}
+
+.button.is-danger {
+  background: linear-gradient(180deg, hsl(0, 68%, 60%), hsl(0, 68%, 50%));
+  border: 1px solid hsla(0, 68%, 35%, 0.8);
+  color: hsl(0, 40%, 10%);
+  font-weight: 600;
+}
+
+.button.is-danger.is-outlined,
+.button.is-light.is-danger {
+  background: transparent;
+  color: hsl(0, 68%, 65%);
+  border-color: hsla(0, 68%, 50%, 0.5);
+}
+
+.button.is-danger.is-outlined:hover:not([disabled]) {
+  background: hsla(0, 68%, 50%, 0.15);
+  color: hsl(0, 70%, 75%);
+  border-color: hsla(0, 68%, 60%, 0.8);
+}
+
+.button.is-outlined {
+  background: transparent;
+}
+
+.button[disabled] {
+  opacity: 0.5;
+}
+
+/* --------------------------------------------------------------------------
+   Tags
+   -------------------------------------------------------------------------- */
+.tag {
+  border-radius: var(--mul-radius-sm);
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.tag.is-light {
+  background: hsla(38, 25%, 85%, 0.08);
+  color: var(--mul-text-muted);
+  border-color: var(--mul-border);
+}
+
+.tag.is-primary {
+  background: hsla(35, 82%, 55%, 0.2);
+  color: hsl(35, 82%, 78%);
+  border-color: hsla(35, 82%, 55%, 0.4);
+}
+
+.tag.is-primary.is-light {
+  background: hsla(35, 82%, 55%, 0.12);
+  color: hsl(35, 82%, 78%);
+  border-color: hsla(35, 82%, 55%, 0.3);
+}
+
+.tag.is-success {
+  background: hsla(150, 50%, 40%, 0.2);
+  color: hsl(150, 50%, 75%);
+  border-color: hsla(150, 50%, 50%, 0.4);
+}
+
+.tag.is-success.is-light {
+  background: hsla(150, 50%, 40%, 0.12);
+  color: hsl(150, 40%, 75%);
+  border-color: hsla(150, 50%, 50%, 0.3);
+}
+
+.tag.is-warning {
+  background: hsla(45, 82%, 50%, 0.2);
+  color: hsl(45, 82%, 78%);
+  border-color: hsla(45, 82%, 55%, 0.4);
+}
+
+.tag.is-info {
+  background: hsla(200, 65%, 50%, 0.2);
+  color: hsl(200, 65%, 78%);
+  border-color: hsla(200, 65%, 55%, 0.4);
+}
+
+.tag.is-info.is-light {
+  background: hsla(200, 65%, 50%, 0.12);
+  color: hsl(200, 55%, 78%);
+  border-color: hsla(200, 65%, 55%, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Forms
+   -------------------------------------------------------------------------- */
+.input,
+.textarea,
+.select select {
+  background: var(--mul-bg-elev-1) !important;
+  color: var(--mul-text) !important;
+  border: 1px solid var(--mul-border-strong) !important;
+  border-radius: var(--mul-radius-sm) !important;
+  box-shadow: none !important;
+  transition: border-color var(--mul-motion), box-shadow var(--mul-motion);
+}
+
+.input:focus,
+.textarea:focus,
+.select select:focus {
+  border-color: var(--mul-orange) !important;
+  box-shadow: 0 0 0 3px hsla(35, 82%, 55%, 0.2) !important;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--mul-text-dim);
+}
+
+.label {
+  color: var(--mul-text);
+}
+
+/* Small label style used inside chips */
+.field-label .label {
+  color: var(--mul-text-dim);
+}
+
+.select::after {
+  border-color: var(--mul-orange) !important;
+}
+
+.help.is-danger {
+  color: hsl(0, 70%, 75%);
+}
+
+.checkbox input[type="checkbox"] {
+  accent-color: var(--mul-orange);
+}
+
+/* --------------------------------------------------------------------------
+   Tables
+   -------------------------------------------------------------------------- */
+.table {
+  background: transparent;
+  color: var(--mul-text);
+}
+
+.table thead th {
+  color: var(--mul-text-dim);
+  border-bottom: 1px solid var(--mul-border-strong);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.table td,
+.table th {
+  border-bottom: 1px solid var(--mul-border);
+  color: var(--mul-text);
+}
+
+.table.is-hoverable tbody tr:hover {
+  background: hsla(38, 25%, 85%, 0.04);
+}
+
+/* --------------------------------------------------------------------------
+   Breadcrumb
+   -------------------------------------------------------------------------- */
+.breadcrumb li a {
+  color: var(--mul-text-muted);
+}
+
+.breadcrumb li.is-active a {
+  color: var(--mul-text-strong);
+}
+
+.breadcrumb li + li::before {
+  color: var(--mul-text-dim);
+}
+
+/* --------------------------------------------------------------------------
+   Pagination
+   -------------------------------------------------------------------------- */
+.pagination-link,
+.pagination-previous,
+.pagination-next {
+  background: var(--mul-bg-elev-1);
+  color: var(--mul-text);
+  border-color: var(--mul-border-strong);
+}
+
+.pagination-link.is-current {
+  background: hsla(35, 82%, 55%, 0.2);
+  color: var(--mul-orange-bright);
+  border-color: hsla(35, 82%, 55%, 0.4);
+}
+
+.pagination-link[aria-disabled],
+.pagination-previous[aria-disabled],
+.pagination-next[aria-disabled] {
+  opacity: 0.4;
+}
+
+/* --------------------------------------------------------------------------
+   Filter row (responsive)
+   -------------------------------------------------------------------------- */
 .filter-row {
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -98,21 +626,17 @@
     font-size: 1rem;
   }
   .brand-navbar .navbar-menu {
-    background-color: var(--brand-navy-dark);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    background: hsla(219, 42%, 5%, 0.98);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     padding: 0.5rem 0;
-  }
-  .brand-navbar .navbar-menu .navbar-item {
-    color: hsl(0, 0%, 92%);
+    border-top: 1px solid var(--mul-border);
   }
   .brand-navbar .navbar-burger {
-    color: #fff;
+    color: var(--mul-text-strong);
   }
-  /* Trade detail: give/receive already stack via columns; tighten the header */
   .trade-header .level-right {
     margin-top: 0.75rem;
   }
-  /* Match cards: propose button drops below on mobile */
   .match-header .level-right {
     margin-top: 0.75rem;
     align-self: stretch;
@@ -122,7 +646,9 @@
   }
 }
 
-/* Trade list table: never let it break the viewport */
+/* --------------------------------------------------------------------------
+   Trade list table
+   -------------------------------------------------------------------------- */
 .trades-table-wrap {
   overflow-x: auto;
 }
@@ -130,61 +656,17 @@
   white-space: nowrap;
 }
 
-/* Trade comment thread */
-.comment-thread {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.comment-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-}
-
-.comment-row.is-mine {
-  justify-content: flex-end;
-}
-
-.comment-bubble {
-  max-width: 75%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.75rem;
-  background-color: hsl(0, 0%, 96%);
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.comment-row.is-mine .comment-bubble {
-  background-color: hsl(35, 82%, 88%);
-}
-
-.comment-body {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 0.875rem;
-}
-
-.comment-time {
-  font-size: 0.65rem;
-  color: hsl(0, 0%, 48%);
-  align-self: flex-end;
-}
-
-/* Trader cards on /users — subtle hover to indicate they're links */
-.user-card {
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-.user-card:hover {
-  box-shadow: 0 4px 12px rgba(10, 30, 66, 0.15);
-  transform: translateY(-1px);
-}
-
-/* Listing rows on card detail page — responsive without horizontal scroll */
+/* --------------------------------------------------------------------------
+   Listing rows on card detail
+   -------------------------------------------------------------------------- */
 .listing-row {
   padding: 0.75rem 1rem;
+  transition: border-color var(--mul-motion), background var(--mul-motion);
+}
+
+.listing-row:hover {
+  border-color: var(--mul-border-strong);
+  background: var(--mul-bg-elev-2);
 }
 
 .listing-row-main {
@@ -225,42 +707,95 @@
   }
 }
 
-body {
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+/* --------------------------------------------------------------------------
+   Trader cards on /users
+   -------------------------------------------------------------------------- */
+.user-card {
+  transition: box-shadow var(--mul-motion), transform var(--mul-motion),
+    border-color var(--mul-motion);
+  border: 1px solid var(--mul-border);
+}
+
+.user-card:hover {
+  border-color: var(--mul-border-hover);
+  box-shadow: var(--mul-glow-orange);
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   Trade comments
+   -------------------------------------------------------------------------- */
+.comment-thread {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  gap: 0.5rem;
 }
 
-main.page {
-  flex: 1;
+.comment-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
-.card-tile .card-image {
-  background-color: hsl(0, 0%, 96%);
+.comment-row.is-mine {
+  justify-content: flex-end;
 }
 
-.card-tile .card-image .image img {
-  object-fit: contain;
+.comment-bubble {
+  max-width: 75%;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--mul-radius-md);
+  background: var(--mul-bg-elev-2);
+  border: 1px solid var(--mul-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
-.card-tile .card-content {
-  padding: 0.5rem;
+.comment-row.is-mine .comment-bubble {
+  background: linear-gradient(180deg, hsla(35, 82%, 45%, 0.2), hsla(35, 82%, 40%, 0.1));
+  border-color: hsla(35, 82%, 55%, 0.35);
 }
 
-.card-name {
-  font-weight: 600;
-  font-size: 0.8125rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.comment-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  color: var(--mul-text);
 }
 
-.card-meta {
-  font-size: 0.6875rem;
-  color: hsl(0, 0%, 48%);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.comment-time {
+  font-size: 0.65rem;
+  color: var(--mul-text-dim);
+  align-self: flex-end;
+}
+
+/* --------------------------------------------------------------------------
+   Text helpers
+   -------------------------------------------------------------------------- */
+.has-text-grey {
+  color: var(--mul-text-muted) !important;
+}
+.has-text-grey-light {
+  color: var(--mul-text-muted) !important;
+}
+.has-text-weight-semibold {
+  color: var(--mul-text-strong);
+}
+
+a {
+  color: var(--mul-orange-bright);
+  transition: color var(--mul-motion);
+}
+
+a:hover {
+  color: hsl(35, 88%, 72%);
+}
+
+/* --------------------------------------------------------------------------
+   Focus outlines (accessibility)
+   -------------------------------------------------------------------------- */
+*:focus-visible {
+  outline: 2px solid var(--mul-orange);
+  outline-offset: 2px;
 }
