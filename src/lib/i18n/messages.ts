@@ -333,20 +333,6 @@ export const MESSAGES = {
       handleLabel: "Usuário",
       emailLabel: "Email",
     },
-    discord: {
-      sectionTitle: "Notificações no Discord",
-      sectionHint:
-        "Cole a URL de um webhook do Discord para receber avisos de propostas, contra-propostas, mensagens e trocas concluídas no seu canal.",
-      howto: "Como criar um webhook (2 min)",
-      step1: "Abra as configurações de um canal no Discord (ícone de engrenagem).",
-      step2: "Vá em Integrações → Webhooks → Novo webhook e escolha o canal.",
-      step3: "Clique em Copiar URL e cole aqui.",
-      saved: "Webhook salvo",
-      cleared: "Webhook removido",
-      testBtn: "Enviar teste",
-      testSent: "Mensagem de teste enviada — veja no Discord",
-      error: "Erro ao salvar",
-    },
     lgs: {
       title: "Lojinhas",
       navLabel: "Lojinha",
@@ -702,20 +688,6 @@ export const MESSAGES = {
       accountSectionTitle: "Account",
       handleLabel: "Handle",
       emailLabel: "Email",
-    },
-    discord: {
-      sectionTitle: "Discord notifications",
-      sectionHint:
-        "Paste a Discord webhook URL to get alerts for trade proposals, counters, comments, and finished trades in your own channel.",
-      howto: "How to create a webhook (2 min)",
-      step1: "Open a channel's settings in Discord (gear icon).",
-      step2: "Go to Integrations → Webhooks → New Webhook and pick the channel.",
-      step3: "Click Copy URL and paste here.",
-      saved: "Webhook saved",
-      cleared: "Webhook removed",
-      testBtn: "Send test",
-      testSent: "Test message sent — check Discord",
-      error: "Save failed",
     },
     lgs: {
       title: "LGSs",
