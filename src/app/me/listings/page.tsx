@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getMyListings } from "@/lib/queries";
+import { getMyListings, getUserGameInterests } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ListingEditor } from "./listing-editor";
+import { GameInterestsForm } from "@/components/game-interests-form";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,10 @@ export default async function MyListingsPage() {
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
 
-  const listings = await getMyListings(session.user.id);
+  const [listings, myGames] = await Promise.all([
+    getMyListings(session.user.id),
+    getUserGameInterests(session.user.id),
+  ]);
   const haves = listings.filter((l) => l.kind === "HAVE");
   const wants = listings.filter((l) => l.kind === "WANT");
 
@@ -34,6 +38,12 @@ export default async function MyListingsPage() {
               {t("myListings.addFromCatalog")}
             </Link>
           </div>
+        </div>
+
+        <div className="box mb-5">
+          <h2 className="title is-6 mb-2">{t("games.myGamesTitle")}</h2>
+          <p className="is-size-7 has-text-grey mb-3">{t("games.myGamesHint")}</p>
+          <GameInterestsForm current={myGames} />
         </div>
 
         <Section

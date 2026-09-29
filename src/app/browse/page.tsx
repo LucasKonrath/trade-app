@@ -5,7 +5,8 @@ import { CardTile } from "@/components/card-tile";
 import { ProposeListingButton } from "@/components/propose-listing-button";
 import { ScopeToggle } from "@/components/scope-toggle";
 import { GameSlug, ListingKind } from "@prisma/client";
-import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
+import { GAME_LABELS } from "@/lib/config";
+import { getViewerGameSlugs } from "@/lib/games";
 import { formatBRL } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
 import { parseLgsScope } from "@/lib/lgs";
@@ -38,6 +39,8 @@ export default async function BrowsePage({
   const page = Math.max(1, Number(params.page) || 1);
 
   const [session, { t }] = await Promise.all([auth(), getT()]);
+  const viewerGames = await getViewerGameSlugs(session?.user?.id ?? null);
+  const isMultiGame = viewerGames.length > 1;
 
   const { items, total } = await browseListings({
     q,
@@ -76,17 +79,16 @@ export default async function BrowsePage({
               className="input"
             />
           </div>
-          {IS_MULTI_GAME && (
+          {isMultiGame && (
             <div className="control">
               <div className="select">
                 <select name="game" defaultValue={game ?? ""}>
                   <option value="">{t("cards.allGames")}</option>
-                  {ENABLED_GAMES.includes(GameSlug.pokemon) && (
-                    <option value="pokemon">{t("cards.pokemon")}</option>
-                  )}
-                  {ENABLED_GAMES.includes(GameSlug.riftbound) && (
-                    <option value="riftbound">{t("cards.riftbound")}</option>
-                  )}
+                  {viewerGames.map((slug) => (
+                    <option key={slug} value={slug}>
+                      {GAME_LABELS[slug]}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

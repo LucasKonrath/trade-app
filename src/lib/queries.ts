@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { GameSlug, ListingKind, OfferType, Prisma } from "@prisma/client";
-import { ENABLED_GAMES } from "@/lib/config";
 import type { LgsScope } from "@/lib/lgs";
 import { getVisibleUserIds } from "@/lib/lgs";
+import { getViewerGameSlugs } from "@/lib/games";
 
 /**
  * Merge an existing userId filter with a set of allowed IDs. Preserves
@@ -27,6 +27,7 @@ export type CardSearchArgs = {
   cardType?: string;
   domain?: string;
   region?: string;
+  viewerId?: string | null;
   take?: number;
   skip?: number;
 };
@@ -39,11 +40,15 @@ export async function searchCards({
   cardType,
   domain,
   region,
+  viewerId = null,
   take = 48,
   skip = 0,
 }: CardSearchArgs) {
+  const viewerGames = await getViewerGameSlugs(viewerId);
+  const gameFilter: GameSlug[] =
+    game && (viewerGames as string[]).includes(game) ? [game] : viewerGames;
+
   const where: Prisma.CardWhereInput = {};
-  const gameFilter: GameSlug[] = game && ENABLED_GAMES.includes(game) ? [game] : ENABLED_GAMES;
   where.game = { slug: { in: gameFilter } };
   if (setCode) where.set = { code: setCode };
   if (rarity) where.rarity = rarity;
@@ -66,8 +71,9 @@ export async function searchCards({
 }
 
 export async function getMyListings(userId: string) {
+  const viewerGames = await getViewerGameSlugs(userId);
   return prisma.listing.findMany({
-    where: { userId, card: { game: { slug: { in: ENABLED_GAMES } } } },
+    where: { userId, card: { game: { slug: { in: viewerGames } } } },
     include: {
       card: {
         include: {
@@ -83,24 +89,26 @@ export async function getMyListings(userId: string) {
 export type ListingIntent = "TRADE" | "CASH" | "ALL";
 
 /**
- * Distinct values for the filter dropdowns on /cards.
- * Scoped to currently enabled games.
+ * Distinct values for the filter dropdowns on /cards. Scoped to the
+ * viewer's game preferences.
  */
-export async function getCardFilterOptions() {
+export async function getCardFilterOptions(viewerId: string | null = null) {
+  const viewerGames = await getViewerGameSlugs(viewerId);
+
   const [sets, rarityRows, typeRows, domainRows, regionRows] = await Promise.all([
     prisma.cardSet.findMany({
-      where: { game: { slug: { in: ENABLED_GAMES } } },
+      where: { game: { slug: { in: viewerGames } } },
       select: { code: true, name: true },
       orderBy: [{ releaseDate: "desc" }, { name: "asc" }],
     }),
     prisma.card.findMany({
-      where: { rarity: { not: null }, game: { slug: { in: ENABLED_GAMES } } },
+      where: { rarity: { not: null }, game: { slug: { in: viewerGames } } },
       select: { rarity: true },
       distinct: ["rarity"],
       orderBy: { rarity: "asc" },
     }),
     prisma.card.findMany({
-      where: { cardType: { not: null }, game: { slug: { in: ENABLED_GAMES } } },
+      where: { cardType: { not: null }, game: { slug: { in: viewerGames } } },
       select: { cardType: true },
       distinct: ["cardType"],
       orderBy: { cardType: "asc" },
@@ -108,13 +116,13 @@ export async function getCardFilterOptions() {
     prisma.$queryRaw<{ v: string }[]>`
       SELECT DISTINCT unnest("domains") AS v
       FROM "Card"
-      WHERE "gameId" IN (SELECT id FROM "Game" WHERE slug::text = ANY (${ENABLED_GAMES as string[]}))
+      WHERE "gameId" IN (SELECT id FROM "Game" WHERE slug::text = ANY (${viewerGames as string[]}))
       ORDER BY v ASC
     `,
     prisma.$queryRaw<{ v: string }[]>`
       SELECT DISTINCT unnest("regions") AS v
       FROM "Card"
-      WHERE "gameId" IN (SELECT id FROM "Game" WHERE slug::text = ANY (${ENABLED_GAMES as string[]}))
+      WHERE "gameId" IN (SELECT id FROM "Game" WHERE slug::text = ANY (${viewerGames as string[]}))
       ORDER BY v ASC
     `,
   ]);
@@ -151,6 +159,10 @@ export async function browseListings({
   take = 48,
   skip = 0,
 }: BrowseArgs) {
+  const viewerGames = await getViewerGameSlugs(viewerId);
+  const gameFilter: GameSlug[] =
+    game && (viewerGames as string[]).includes(game) ? [game] : viewerGames;
+
   const where: Prisma.ListingWhereInput = {};
   if (kind) where.kind = kind;
   if (excludeUserId) where.userId = { not: excludeUserId };
@@ -160,7 +172,6 @@ export async function browseListings({
   }
   if (intent === "TRADE") where.offerType = { in: ["TRADE_ONLY", "TRADE_OR_CASH"] };
   else if (intent === "CASH") where.offerType = { in: ["CASH_ONLY", "TRADE_OR_CASH"] };
-  const gameFilter: GameSlug[] = game && ENABLED_GAMES.includes(game) ? [game] : ENABLED_GAMES;
   where.card = { game: { slug: { in: gameFilter } } };
   if (q && q.trim()) where.card.name = { contains: q.trim(), mode: "insensitive" };
 
@@ -186,24 +197,18 @@ export async function browseListings({
   return { items, total };
 }
 
-/**
- * Mutual match: users B where
- *   A.HAVE ∩ B.WANT ≠ ∅   AND   A.WANT ∩ B.HAVE ≠ ∅
- *
- * Only trade-eligible listings count — cash-only listings are excluded.
- * Returns each candidate with the concrete card ids on each side of the trade.
- */
 export type Match = {
   userId: string;
   handle: string | null;
   name: string | null;
   image: string | null;
-  theyWantIds: string[]; // cards A has that B wants (A → B)
-  iWantIds: string[]; // cards B has that A wants (B → A)
+  theyWantIds: string[];
+  iWantIds: string[];
 };
 
 export async function findMatches(userId: string, scope: LgsScope = "primary"): Promise<Match[]> {
-  const gameScope = { card: { game: { slug: { in: ENABLED_GAMES } } } };
+  const viewerGames = await getViewerGameSlugs(userId);
+  const gameScope = { card: { game: { slug: { in: viewerGames } } } };
   const tradeEligible = { offerType: { in: ["TRADE_ONLY", "TRADE_OR_CASH"] as OfferType[] } };
 
   const myListings = await prisma.listing.findMany({
@@ -217,9 +222,9 @@ export async function findMatches(userId: string, scope: LgsScope = "primary"): 
   if (myHaveIds.length === 0 || myWantIds.length === 0) return [];
 
   const visibleIds = await getVisibleUserIds(userId, scope);
-  const scopeFilter = visibleIds !== null ? { userId: { in: visibleIds, not: userId } } : { userId: { not: userId } };
+  const scopeFilter =
+    visibleIds !== null ? { userId: { in: visibleIds, not: userId } } : { userId: { not: userId } };
 
-  // Users who WANT something I HAVE (trade-eligible only).
   const theyWant = await prisma.listing.findMany({
     where: {
       kind: "WANT",
@@ -231,7 +236,6 @@ export async function findMatches(userId: string, scope: LgsScope = "primary"): 
     select: { userId: true, cardId: true },
   });
 
-  // Users who HAVE something I WANT (trade-eligible only).
   const theyHave = await prisma.listing.findMany({
     where: {
       kind: "HAVE",
@@ -271,21 +275,17 @@ export async function findMatches(userId: string, scope: LgsScope = "primary"): 
     iWantIds: [...(theyHaveByUser.get(u.id) ?? [])],
   }));
 
-  // Rank: reward balanced two-way overlap.
   matches.sort((a, b) => {
-    const scoreA = Math.min(a.theyWantIds.length, a.iWantIds.length) * 100 + a.theyWantIds.length + a.iWantIds.length;
-    const scoreB = Math.min(b.theyWantIds.length, b.iWantIds.length) * 100 + b.theyWantIds.length + b.iWantIds.length;
+    const scoreA =
+      Math.min(a.theyWantIds.length, a.iWantIds.length) * 100 + a.theyWantIds.length + a.iWantIds.length;
+    const scoreB =
+      Math.min(b.theyWantIds.length, b.iWantIds.length) * 100 + b.theyWantIds.length + b.iWantIds.length;
     return scoreB - scoreA;
   });
 
   return matches;
 }
 
-/**
- * Number of trades where I need to act:
- * - REQUESTED and I'm not the last proposer (someone sent me an offer / countered)
- * - ACCEPTED where the other party has confirmed finish but I haven't
- */
 export async function getPendingTradeCount(userId: string): Promise<number> {
   const trades = await prisma.trade.findMany({
     where: {
@@ -363,8 +363,6 @@ export async function getLgsBySlug(slug: string) {
 }
 
 export async function getMyTrades(userId: string) {
-  // Requester sees all their trades (including OPEN drafts).
-  // Responder only sees trades that have been sent (status != OPEN).
   return prisma.trade.findMany({
     where: {
       OR: [
@@ -409,7 +407,6 @@ export async function getTradeForUser(tradeId: string, userId: string) {
   const isRequester = trade.requesterId === userId;
   const isResponder = trade.responderId === userId;
   if (!isRequester && !isResponder) return null;
-  // Responder cannot see the trade until it's been sent.
   if (isResponder && !isRequester && trade.status === "OPEN") return null;
   return trade;
 }
@@ -440,22 +437,19 @@ export type CashMatch = {
   }[];
 };
 
-/**
- * For each of my WANT listings with a max price, find HAVE listings
- * (from other users) priced at or below my max. Ordered by savings
- * from my max — cheapest first.
- */
 export async function findCashMatches(
   userId: string,
   scope: LgsScope = "primary",
 ): Promise<CashMatch[]> {
+  const viewerGames = await getViewerGameSlugs(userId);
+
   const myWants = await prisma.listing.findMany({
     where: {
       userId,
       kind: "WANT",
       priceCents: { not: null },
       offerType: { in: ["CASH_ONLY", "TRADE_OR_CASH"] as OfferType[] },
-      card: { game: { slug: { in: ENABLED_GAMES } } },
+      card: { game: { slug: { in: viewerGames } } },
     },
     include: {
       card: {
@@ -515,7 +509,6 @@ export async function findCashMatches(
     });
   }
 
-  // Cards where we saved the most money first (bigger gap between my max and cheapest seller)
   results.sort((a, b) => {
     const savingsA = a.myMaxCents - a.sellers[0].priceCents;
     const savingsB = b.myMaxCents - b.sellers[0].priceCents;
@@ -558,10 +551,6 @@ export async function getCardWithListings(
   return { card, mine, sellers, buyers };
 }
 
-/**
- * Suggested market price per card: median of HAVE priceCents from other
- * users. Cards with no priced HAVE listings return no entry in the map.
- */
 export async function getSuggestedPrices(
   cardIds: string[],
   excludeUserId?: string,
@@ -611,15 +600,11 @@ export type TraderRow = {
   wants: number;
 };
 
-/**
- * Every user with a handle, plus their HAVE/WANT counts scoped to
- * enabled games. Sorted by total activity (haves + wants desc), then
- * alphabetical by handle.
- */
 export async function getTraders(
   viewerId: string | null = null,
   scope: LgsScope = "primary",
 ): Promise<TraderRow[]> {
+  const viewerGames = await getViewerGameSlugs(viewerId);
   const visibleIds = await getVisibleUserIds(viewerId, scope);
   const userFilter: Prisma.UserWhereInput = { handle: { not: null } };
   if (visibleIds !== null) userFilter.id = { in: visibleIds };
@@ -632,7 +617,7 @@ export async function getTraders(
     prisma.listing.groupBy({
       by: ["userId", "kind"],
       where: {
-        card: { game: { slug: { in: ENABLED_GAMES } } },
+        card: { game: { slug: { in: viewerGames } } },
         ...(visibleIds !== null ? { userId: { in: visibleIds } } : {}),
       },
       _count: { _all: true },
@@ -677,4 +662,12 @@ export async function getCardsByIds(ids: string[]) {
       game: { select: { slug: true } },
     },
   });
+}
+
+export async function getUserGameInterests(userId: string): Promise<GameSlug[]> {
+  const rows = await prisma.userGameInterest.findMany({
+    where: { userId },
+    select: { game: { select: { slug: true } } },
+  });
+  return rows.map((r) => r.game.slug);
 }

@@ -1,13 +1,24 @@
 import { GameSlug } from "@prisma/client";
 
 /**
- * Games currently visible in the app. Nothing is deleted from the DB —
- * queries and UI just filter to this list. To re-enable Pokémon, add it here.
+ * Games globally available in the app. Each user picks a subset via
+ * UserGameInterest; queries filter to the intersection of "available" and
+ * "what the viewer chose".
+ *
+ * Add a game here (and seed its cards) to make it selectable everywhere.
  */
-export const ENABLED_GAMES: GameSlug[] = [GameSlug.riftbound];
+export const AVAILABLE_GAMES: GameSlug[] = [GameSlug.pokemon, GameSlug.riftbound];
 
-export const IS_MULTI_GAME = ENABLED_GAMES.length > 1;
+// Alias for legacy call sites — points to the same list.
+export const ENABLED_GAMES = AVAILABLE_GAMES;
+
+export const IS_MULTI_GAME = AVAILABLE_GAMES.length > 1;
 
 export function isGameEnabled(slug: GameSlug | string | undefined | null): boolean {
-  return !!slug && (ENABLED_GAMES as string[]).includes(slug);
+  return !!slug && (AVAILABLE_GAMES as string[]).includes(slug);
 }
+
+export const GAME_LABELS: Record<GameSlug, string> = {
+  [GameSlug.pokemon]: "Pokémon",
+  [GameSlug.riftbound]: "Riftbound",
+};

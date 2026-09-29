@@ -615,6 +615,14 @@ export const MESSAGES = {
       send: "Send",
       remaining: "{count} left",
     },
+    games: {
+      myGamesTitle: "My games",
+      myGamesHint:
+        "Pick the games you care about. Cards, listings, and matches will filter to your selection.",
+      pickOne: "Pick at least one game",
+      save: "Save preferences",
+      saved: "Preferences saved",
+    },
     lgs: {
       title: "LGSs",
       navLabel: "LGS",

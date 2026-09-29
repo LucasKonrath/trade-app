@@ -5,7 +5,8 @@ import { searchCards, getSuggestedPrices, getCardFilterOptions } from "@/lib/que
 import { CardTile } from "@/components/card-tile";
 import { ListingChip } from "@/components/listing-chip";
 import { GameSlug } from "@prisma/client";
-import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
+import { GAME_LABELS } from "@/lib/config";
+import { getViewerGameSlugs } from "@/lib/games";
 import { formatBRL } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
 
@@ -39,11 +40,14 @@ export default async function CardsPage({
   const region = params.region?.trim() || undefined;
   const page = Math.max(1, Number(params.page) || 1);
 
-  const [session, { t }, filterOptions] = await Promise.all([
-    auth(),
+  const session = await auth();
+  const viewerId = session?.user?.id ?? null;
+  const [{ t }, filterOptions, viewerGames] = await Promise.all([
     getT(),
-    getCardFilterOptions(),
+    getCardFilterOptions(viewerId),
+    getViewerGameSlugs(viewerId),
   ]);
+  const isMultiGame = viewerGames.length > 1;
 
   const { items, total } = await searchCards({
     q,
@@ -53,6 +57,7 @@ export default async function CardsPage({
     cardType,
     domain,
     region,
+    viewerId,
     take: PAGE_SIZE,
     skip: (page - 1) * PAGE_SIZE,
   });
@@ -133,17 +138,16 @@ export default async function CardsPage({
               className="input"
             />
           </div>
-          {IS_MULTI_GAME && (
+          {isMultiGame && (
             <div className="control">
               <div className="select">
                 <select name="game" defaultValue={game ?? ""}>
                   <option value="">{t("cards.allGames")}</option>
-                  {ENABLED_GAMES.includes(GameSlug.pokemon) && (
-                    <option value="pokemon">{t("cards.pokemon")}</option>
-                  )}
-                  {ENABLED_GAMES.includes(GameSlug.riftbound) && (
-                    <option value="riftbound">{t("cards.riftbound")}</option>
-                  )}
+                  {viewerGames.map((slug) => (
+                    <option key={slug} value={slug}>
+                      {GAME_LABELS[slug]}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
