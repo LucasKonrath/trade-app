@@ -70,6 +70,7 @@ model VerificationToken {
 enum GameSlug {
   pokemon
   riftbound
+  mtg
 }
 
 enum ListingKind {

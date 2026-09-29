@@ -7,7 +7,11 @@ import { GameSlug } from "@prisma/client";
  *
  * Add a game here (and seed its cards) to make it selectable everywhere.
  */
-export const AVAILABLE_GAMES: GameSlug[] = [GameSlug.pokemon, GameSlug.riftbound];
+export const AVAILABLE_GAMES: GameSlug[] = [
+  GameSlug.pokemon,
+  GameSlug.riftbound,
+  GameSlug.mtg,
+];
 
 // Alias for legacy call sites — points to the same list.
 export const ENABLED_GAMES = AVAILABLE_GAMES;
@@ -21,4 +25,5 @@ export function isGameEnabled(slug: GameSlug | string | undefined | null): boole
 export const GAME_LABELS: Record<GameSlug, string> = {
   [GameSlug.pokemon]: "Pokémon",
   [GameSlug.riftbound]: "Riftbound",
+  [GameSlug.mtg]: "Magic: The Gathering",
 };
