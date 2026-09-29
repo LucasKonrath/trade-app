@@ -105,6 +105,7 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
         </button>
       );
     }
+    const eachSuffix = existing.quantity > 1 ? ` ${t("common.perUnit")}` : "";
     let summary: string;
     if (existing.offerType === "TRADE_ONLY") {
       summary = kind === "HAVE" ? t("cards.listedForTrade") : t("cards.wantForTrade");
@@ -112,7 +113,7 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
       if (existing.priceCents == null) {
         summary = kind === "HAVE" ? t("cards.listedForOffers") : t("cards.wantForOffers");
       } else {
-        const priceStr = formatBRL(existing.priceCents);
+        const priceStr = formatBRL(existing.priceCents) + eachSuffix;
         summary =
           kind === "HAVE"
             ? t("cards.listedForSale", { price: priceStr })
@@ -123,7 +124,7 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
         summary =
           kind === "HAVE" ? t("cards.listedForTradeOrOffers") : t("cards.wantForTradeOrOffers");
       } else {
-        const priceStr = formatBRL(existing.priceCents);
+        const priceStr = formatBRL(existing.priceCents) + eachSuffix;
         summary =
           kind === "HAVE"
             ? t("cards.listedForSaleOrTrade", { price: priceStr })

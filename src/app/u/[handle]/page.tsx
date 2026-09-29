@@ -155,6 +155,7 @@ function Section({
                       <div className="mt-1">
                         <span className="tag is-primary is-small">
                           {formatBRL(l.priceCents)}
+                          {l.quantity > 1 ? " cada" : ""}
                           {l.offerType === "CASH_ONLY" ? " · cash" : ""}
                         </span>
                       </div>

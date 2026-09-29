@@ -17,6 +17,8 @@ export const MESSAGES = {
       previous: "Anterior",
       next: "Próximo",
       openBtn: "Abrir",
+      perUnit: "cada",
+      totalLabel: "total",
     },
     nav: {
       brand: "Mulligan",
@@ -371,6 +373,8 @@ export const MESSAGES = {
       previous: "Previous",
       next: "Next",
       openBtn: "Open",
+      perUnit: "each",
+      totalLabel: "total",
     },
     nav: {
       brand: "Mulligan",

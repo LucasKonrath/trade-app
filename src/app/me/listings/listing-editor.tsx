@@ -101,7 +101,9 @@ export function ListingEditor({
             }`}
           >
             {offerLabelFor(offerType)}
-            {priceCents ? ` · ${formatBRL(priceCents)}` : ""}
+            {priceCents
+              ? ` · ${formatBRL(priceCents)}${quantity > 1 ? ` ${t("common.perUnit")}` : ""}`
+              : ""}
           </span>
         </div>
         {note && (

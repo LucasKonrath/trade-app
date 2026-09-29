@@ -9,6 +9,7 @@ type Props = {
   rarity?: string | null;
   gameSlug?: string;
   orientation?: string | null;
+  quantityBadge?: number | null; // overlay top-right "×N" when > 1
   href?: string; // when set, the image + text section becomes a link to this URL
   footer?: React.ReactNode;
 };
@@ -21,6 +22,7 @@ export function CardTile({
   rarity,
   gameSlug,
   orientation,
+  quantityBadge,
   href,
   footer,
 }: Props) {
@@ -31,7 +33,7 @@ export function CardTile({
 
   const info = (
     <>
-      <div className="card-image">
+      <div className="card-image" style={{ position: "relative" }}>
         <figure className={`image ${aspectClass}`}>
           {imageUrl ? (
             <Image
@@ -49,6 +51,23 @@ export function CardTile({
             </div>
           )}
         </figure>
+        {quantityBadge && quantityBadge > 1 && (
+          <span
+            className="tag is-primary"
+            style={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              fontWeight: 700,
+              fontSize: "0.75rem",
+              padding: "0 0.5em",
+              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.5)",
+              pointerEvents: "none",
+            }}
+          >
+            ×{quantityBadge}
+          </span>
+        )}
       </div>
       <div className="card-content">
         <div className="card-name" title={name}>

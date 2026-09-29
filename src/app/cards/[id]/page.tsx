@@ -202,13 +202,14 @@ function ListingsSection({
                       {l.priceCents != null ? (
                         <span className="tag is-small is-primary is-light">
                           {formatBRL(l.priceCents)}
+                          {l.quantity > 1 ? " cada" : ""}
                           {l.offerType === "CASH_ONLY" ? ` · ${cashLabel}` : ""}
                         </span>
                       ) : (
                         <span className="tag is-small is-light">{tradeOnlyLabel}</span>
                       )}
                       <span className="has-text-grey is-size-7">
-                        {l.condition ?? "—"} · qty {l.quantity}
+                        {l.condition ?? "—"} · {l.quantity}× disponív{l.quantity > 1 ? "eis" : "el"}
                       </span>
                     </div>
                     {l.note && (

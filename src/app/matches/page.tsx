@@ -98,6 +98,7 @@ export default async function MatchesPage({
                               <td>
                                 <span className="tag is-primary is-light">
                                   {formatBRL(s.priceCents)}
+                                  {s.quantity > 1 ? ` ${t("common.perUnit")}` : ""}
                                 </span>
                               </td>
                               <td className="has-text-grey is-size-7">{s.condition ?? "—"}</td>

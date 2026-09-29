@@ -153,6 +153,7 @@ export default async function BrowsePage({
                         {l.priceCents !== null && (
                           <span className="tag is-primary is-small">
                             {formatBRL(l.priceCents)}
+                            {l.quantity > 1 ? ` ${t("common.perUnit")}` : ""}
                             {l.offerType === "CASH_ONLY" ? ` · ${t("cardDetail.cash")}` : ""}
                           </span>
                         )}

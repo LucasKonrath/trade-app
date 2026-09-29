@@ -105,12 +105,28 @@ export default async function TradePage({
             const cashFromMe = iAmRequester ? cash < 0 : cash > 0;
             const amount = formatBRL(Math.abs(cash));
             const otherLabel = other.handle ? `@${other.handle}` : "";
+            // Per-card breakdown: total copies across all trade items on the
+            // side of the person receiving the cards (i.e. the side that's
+            // paying).
+            const totalCopies = trade.items.reduce(
+              (sum, it) => sum + (it.quantity ?? 1),
+              0,
+            );
+            const perCard =
+              totalCopies > 1
+                ? formatBRL(Math.round(Math.abs(cash) / totalCopies))
+                : null;
             return (
               <div className="notification is-info is-light mt-3 mb-0 py-2 px-3">
                 <strong>
                   {cashFromMe ? t("tradeDetail.youPay") : t("tradeDetail.youReceive")} {amount}
                 </strong>{" "}
                 {cashFromMe ? t("tradeDetail.to") : t("tradeDetail.from")} {otherLabel}
+                {perCard && (
+                  <span className="is-size-7 has-text-grey ml-2">
+                    (≈ {perCard} {t("common.perUnit")} · {totalCopies} cartas)
+                  </span>
+                )}
               </div>
             );
           })()}
@@ -142,6 +158,7 @@ export default async function TradePage({
                       rarity={item.card.rarity}
                       gameSlug={item.card.game.slug}
                       orientation={item.card.orientation}
+                      quantityBadge={item.quantity}
                       href={`/cards/${item.cardId}`}
                     />
                   </div>
@@ -169,6 +186,7 @@ export default async function TradePage({
                       rarity={item.card.rarity}
                       gameSlug={item.card.game.slug}
                       orientation={item.card.orientation}
+                      quantityBadge={item.quantity}
                       href={`/cards/${item.cardId}`}
                     />
                   </div>

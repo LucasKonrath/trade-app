@@ -116,7 +116,11 @@ export default async function Home() {
                             {l.priceCents !== null && (
                               <span className="tag is-small is-primary">
                                 {formatBRL(l.priceCents)}
+                                {l.quantity > 1 ? ` ${t("common.perUnit")}` : ""}
                               </span>
+                            )}
+                            {l.quantity > 1 && (
+                              <span className="tag is-small is-light">×{l.quantity}</span>
                             )}
                           </div>
                           <Link
