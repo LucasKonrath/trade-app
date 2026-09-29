@@ -19,7 +19,7 @@ export const MESSAGES = {
       openBtn: "Abrir",
     },
     nav: {
-      brand: "Trade App",
+      brand: "Mulligan",
       cards: "Cartas",
       browse: "Explorar",
       users: "Jogadores",
@@ -31,9 +31,9 @@ export const MESSAGES = {
       language: "Idioma",
     },
     landing: {
-      heading: "Troque cartas de TCG com jogadores da sua loja.",
+      heading: "Descarte o que não quer. Compre o que precisa.",
       subheading:
-        "Anuncie as cartas que você tem e as que quer. Vamos achar os matches — jogadores que querem o que você tem e têm o que você quer.",
+        "Anuncie suas cartas, ache quem tem o que você quer, negocie na hora. Direto do seu LGS.",
       seeMatches: "Ver matches",
       myListings: "Meus anúncios",
       signInToStart: "Entrar para começar",
@@ -338,7 +338,7 @@ export const MESSAGES = {
       openBtn: "Open",
     },
     nav: {
-      brand: "Trade App",
+      brand: "Mulligan",
       cards: "Cards",
       browse: "Browse",
       users: "Traders",
@@ -350,9 +350,9 @@ export const MESSAGES = {
       language: "Language",
     },
     landing: {
-      heading: "Trade TCG cards with players at your LGS.",
+      heading: "Discard what you don't want. Draw what you do.",
       subheading:
-        "Post the cards you have and the cards you want. We'll find matches — players who want what you have and have what you want.",
+        "Post your cards, find people with what you're looking for, and settle it on the spot — at your LGS.",
       seeMatches: "See matches",
       myListings: "My listings",
       signInToStart: "Sign in to start trading",

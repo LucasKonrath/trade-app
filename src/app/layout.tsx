@@ -12,8 +12,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Trade App",
-  description: "Trade TCG cards with players at your LGS",
+  title: "Mulligan",
+  description: "Descarte, compre e troque cartas com o pessoal do seu LGS.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
