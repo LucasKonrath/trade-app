@@ -84,7 +84,7 @@ export default function OgImage() {
               display: "flex",
             }}
           >
-            Anuncie suas cartas, ache quem tem o que você quer, negocie na hora. Direto do seu LGS.
+            Anuncie suas cartas, ache quem tem o que você quer, negocie na hora. Direto da sua lojinha.
           </div>
         </div>
 

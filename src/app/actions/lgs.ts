@@ -141,7 +141,7 @@ export async function setPrimaryLgs(input: { lgsId: string }) {
   const membership = await prisma.lgsMembership.findUnique({
     where: { userId_lgsId: { userId: me.id, lgsId } },
   });
-  if (!membership) throw new Error("Você não é membro desse LGS");
+  if (!membership) throw new Error("Você não é membro dessa lojinha");
 
   await prisma.$transaction([
     prisma.lgsMembership.updateMany({

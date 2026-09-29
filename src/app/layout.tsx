@@ -19,7 +19,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "Mulligan",
-  description: "Descarte, compre e troque cartas com o pessoal do seu LGS.",
+  description: "Descarte, compre e troque cartas com o pessoal da sua lojinha.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
