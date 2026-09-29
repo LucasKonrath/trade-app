@@ -67,6 +67,9 @@ export async function Nav() {
                 <Link href="/me/listings" className="navbar-item">
                   {t("nav.myListings")}
                 </Link>
+                <Link href="/me/preferences" className="navbar-item">
+                  {t("nav.preferences")}
+                </Link>
               </>
             )}
           </div>
