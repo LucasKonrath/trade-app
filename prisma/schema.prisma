@@ -71,6 +71,7 @@ enum GameSlug {
   pokemon
   riftbound
   mtg
+  fab
 }
 
 enum ListingKind {

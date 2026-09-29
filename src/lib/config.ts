@@ -11,6 +11,7 @@ export const AVAILABLE_GAMES: GameSlug[] = [
   GameSlug.pokemon,
   GameSlug.riftbound,
   GameSlug.mtg,
+  GameSlug.fab,
 ];
 
 // Alias for legacy call sites — points to the same list.
@@ -26,4 +27,5 @@ export const GAME_LABELS: Record<GameSlug, string> = {
   [GameSlug.pokemon]: "Pokémon",
   [GameSlug.riftbound]: "Riftbound",
   [GameSlug.mtg]: "Magic: The Gathering",
+  [GameSlug.fab]: "Flesh and Blood",
 };

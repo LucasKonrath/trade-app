@@ -18,7 +18,8 @@
     "seed:mock-user": "tsx scripts/seed-mock-user.ts",
     "seed:lgs": "tsx scripts/seed-lgs.ts",
     "seed:user-games": "tsx scripts/seed-user-game-interests.ts",
-    "seed:mtg": "tsx scripts/seed-mtg.ts"
+    "seed:mtg": "tsx scripts/seed-mtg.ts",
+    "seed:fab": "tsx scripts/seed-fab.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

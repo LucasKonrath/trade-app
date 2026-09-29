@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cmsassets.rgpub.io" },
       { protocol: "https", hostname: "cards.scryfall.io" },
       { protocol: "https", hostname: "svgs.scryfall.io" },
+      { protocol: "https", hostname: "legendstory-production-s3-public.s3.amazonaws.com" },
       { protocol: "https", hostname: "cdn.discordapp.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
