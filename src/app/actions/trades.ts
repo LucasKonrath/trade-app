@@ -3,9 +3,39 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { after } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { TradeDirection, TradeStatus } from "@prisma/client";
+import {
+  notifyTradeRequested,
+  notifyTradeCountered,
+  notifyTradeAccepted,
+  notifyTradeDeleted,
+  notifyTradeFinished,
+  notifyFinishAwaiting,
+  notifyNewComment,
+} from "@/lib/notifications";
+
+async function baseUrlFromHeaders(): Promise<string> {
+  const h = await headers();
+  const host = h.get("host");
+  if (!host) return "https://mulligan.local";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host}`;
+}
+
+async function loadTradeWithParties(tradeId: string) {
+  return prisma.trade.findUnique({
+    where: { id: tradeId },
+    include: {
+      requester: { select: { id: true, handle: true, name: true } },
+      responder: { select: { id: true, handle: true, name: true } },
+      items: { select: { direction: true, quantity: true } },
+    },
+  });
+}
 
 async function currentUser() {
   const session = await auth();
@@ -175,6 +205,13 @@ export async function sendTrade(formData: FormData) {
     },
   });
 
+  const baseUrl = await baseUrlFromHeaders();
+  after(async () => {
+    const full = await loadTradeWithParties(tradeId);
+    if (!full) return;
+    await notifyTradeRequested(full.responderId, full.requester, full, baseUrl);
+  });
+
   revalidatePath(`/trades/${tradeId}`);
   revalidatePath("/trades");
 }
@@ -212,6 +249,15 @@ export async function counterTrade(input: { tradeId: string; cashCents: number |
     },
   });
 
+  const baseUrl = await baseUrlFromHeaders();
+  after(async () => {
+    const full = await loadTradeWithParties(parsed.tradeId);
+    if (!full) return;
+    const targetId = full.requesterId === me.id ? full.responderId : full.requesterId;
+    const fromUser = full.requesterId === me.id ? full.requester : full.responder;
+    await notifyTradeCountered(targetId, fromUser, full, baseUrl);
+  });
+
   revalidatePath(`/trades/${parsed.tradeId}`);
   revalidatePath("/trades");
 }
@@ -234,6 +280,16 @@ export async function acceptTrade(formData: FormData) {
   await prisma.trade.update({
     where: { id: tradeId },
     data: { status: TradeStatus.ACCEPTED },
+  });
+
+  const baseUrl = await baseUrlFromHeaders();
+  after(async () => {
+    const full = await loadTradeWithParties(tradeId);
+    if (!full) return;
+    // Whichever side just accepted, notify the OTHER side (the last proposer).
+    const targetId = full.requesterId === me.id ? full.responderId : full.requesterId;
+    const fromUser = full.requesterId === me.id ? full.requester : full.responder;
+    await notifyTradeAccepted(targetId, fromUser, full, baseUrl);
   });
 
   revalidatePath(`/trades/${tradeId}`);
@@ -270,6 +326,16 @@ export async function confirmFinish(formData: FormData) {
       where: { id: tradeId },
       data: { [myField]: now },
     });
+
+    const baseUrl = await baseUrlFromHeaders();
+    after(async () => {
+      const full = await loadTradeWithParties(tradeId);
+      if (!full) return;
+      const targetId = iAmRequester ? full.responderId : full.requesterId;
+      const fromUser = iAmRequester ? full.requester : full.responder;
+      await notifyFinishAwaiting(targetId, fromUser, full, baseUrl);
+    });
+
     revalidatePath(`/trades/${tradeId}`);
     revalidatePath("/trades");
     return;
@@ -305,6 +371,17 @@ export async function confirmFinish(formData: FormData) {
       where: { userId: trade.requesterId, cardId: { in: responderGiveCardIds }, kind: "WANT" },
     }),
   ]);
+
+  const baseUrl = await baseUrlFromHeaders();
+  after(async () => {
+    const full = await loadTradeWithParties(tradeId);
+    if (!full) return;
+    // Both parties get notified when the trade wraps up.
+    await Promise.all([
+      notifyTradeFinished(full.requesterId, full.responder, full, baseUrl),
+      notifyTradeFinished(full.responderId, full.requester, full, baseUrl),
+    ]);
+  });
 
   revalidatePath(`/trades/${tradeId}`);
   revalidatePath("/trades");
@@ -361,6 +438,15 @@ export async function addTradeComment(input: { tradeId: string; body: string }) 
     data: { tradeId: parsed.tradeId, userId: me.id, body: parsed.body },
   });
 
+  const baseUrl = await baseUrlFromHeaders();
+  after(async () => {
+    const full = await loadTradeWithParties(parsed.tradeId);
+    if (!full) return;
+    const targetId = full.requesterId === me.id ? full.responderId : full.requesterId;
+    const fromUser = full.requesterId === me.id ? full.requester : full.responder;
+    await notifyNewComment(targetId, fromUser, { id: parsed.tradeId }, parsed.body, baseUrl);
+  });
+
   revalidatePath(`/trades/${parsed.tradeId}`);
 }
 
@@ -382,7 +468,19 @@ export async function deleteTrade(formData: FormData) {
     throw new Error("Only the requester can delete an open trade");
   }
 
+  // Capture the info we need for the notification BEFORE the row disappears.
+  const full = await loadTradeWithParties(tradeId);
+  const baseUrl = await baseUrlFromHeaders();
+
   await prisma.trade.delete({ where: { id: tradeId } });
+
+  if (full && trade.status !== TradeStatus.OPEN) {
+    after(async () => {
+      const targetId = full.requesterId === me.id ? full.responderId : full.requesterId;
+      const fromUser = full.requesterId === me.id ? full.requester : full.responder;
+      await notifyTradeDeleted(targetId, fromUser, full, baseUrl);
+    });
+  }
 
   revalidatePath("/trades");
   redirect("/trades");

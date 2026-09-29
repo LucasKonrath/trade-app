@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { getUserGameInterests } from "@/lib/queries";
 import { getViewerLgsContext } from "@/lib/lgs";
 import { getT } from "@/lib/i18n/server";
 import { GameInterestsForm } from "@/components/game-interests-form";
+import { DiscordWebhookForm } from "@/components/discord-webhook-form";
 import { LgsRowActions } from "@/app/lgs/lgs-row-actions";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +16,13 @@ export default async function PreferencesPage() {
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
 
-  const [myGames, lgsCtx] = await Promise.all([
+  const [myGames, lgsCtx, meRecord] = await Promise.all([
     getUserGameInterests(session.user.id),
     getViewerLgsContext(session.user.id),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { discordWebhookUrl: true },
+    }),
   ]);
 
   return (
@@ -98,6 +104,13 @@ export default async function PreferencesPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Discord notifications */}
+        <div className="box mt-5">
+          <h2 className="title is-5 mb-2">{t("discord.sectionTitle")}</h2>
+          <p className="is-size-7 has-text-grey mb-3">{t("discord.sectionHint")}</p>
+          <DiscordWebhookForm current={meRecord?.discordWebhookUrl ?? null} />
         </div>
 
         {/* Account info (read-only for now) */}
