@@ -3,15 +3,24 @@ import { auth } from "@/auth";
 import { browseListings } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ProposeListingButton } from "@/components/propose-listing-button";
+import { ScopeToggle } from "@/components/scope-toggle";
 import { GameSlug, ListingKind } from "@prisma/client";
 import { ENABLED_GAMES, IS_MULTI_GAME } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
+import { parseLgsScope } from "@/lib/lgs";
 import type { ListingIntent } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { q?: string; game?: string; kind?: string; intent?: string; page?: string };
+type SearchParams = {
+  q?: string;
+  game?: string;
+  kind?: string;
+  intent?: string;
+  scope?: string;
+  page?: string;
+};
 
 const PAGE_SIZE = 48;
 
@@ -25,6 +34,7 @@ export default async function BrowsePage({
   const game = (params.game as GameSlug | undefined) ?? undefined;
   const kind = (params.kind as ListingKind | undefined) ?? undefined;
   const intent = (params.intent as ListingIntent | undefined) ?? undefined;
+  const scope = parseLgsScope(params.scope);
   const page = Math.max(1, Number(params.page) || 1);
 
   const [session, { t }] = await Promise.all([auth(), getT()]);
@@ -35,6 +45,8 @@ export default async function BrowsePage({
     kind,
     intent,
     excludeUserId: session?.user?.id,
+    viewerId: session?.user?.id ?? null,
+    scope,
     take: PAGE_SIZE,
     skip: (page - 1) * PAGE_SIZE,
   });
@@ -46,6 +58,14 @@ export default async function BrowsePage({
       <div className="container">
         <h1 className="title is-3">{t("browse.title")}</h1>
         <p className="subtitle is-6 has-text-grey">{t("browse.subtitle")}</p>
+
+        {session?.user && (
+          <ScopeToggle
+            pathname="/browse"
+            scope={scope}
+            currentQuery={{ q, game, kind, intent }}
+          />
+        )}
 
         <form action="/browse" className="filter-row field is-grouped is-align-items-center mb-5">
           <div className="control is-expanded" style={{ maxWidth: 320 }}>

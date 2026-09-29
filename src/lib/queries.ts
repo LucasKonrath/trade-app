@@ -1,6 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { GameSlug, ListingKind, OfferType, Prisma } from "@prisma/client";
 import { ENABLED_GAMES } from "@/lib/config";
+import type { LgsScope } from "@/lib/lgs";
+import { getVisibleUserIds } from "@/lib/lgs";
+
+/**
+ * Merge an existing userId filter with a set of allowed IDs. Preserves
+ * `not: excludedId` clauses when present.
+ */
+function excludeIdCombine(
+  existing: Prisma.ListingWhereInput["userId"],
+  allowedIds: string[],
+): Prisma.ListingWhereInput["userId"] {
+  const excluded =
+    existing && typeof existing === "object" && "not" in existing
+      ? (existing.not as string | undefined)
+      : undefined;
+  return { in: allowedIds, ...(excluded ? { not: excluded } : {}) };
+}
 
 export type CardSearchArgs = {
   q?: string;
@@ -117,6 +134,8 @@ export type BrowseArgs = {
   kind?: ListingKind;
   intent?: ListingIntent;
   excludeUserId?: string;
+  viewerId?: string | null;
+  scope?: LgsScope;
   take?: number;
   skip?: number;
 };
@@ -127,12 +146,18 @@ export async function browseListings({
   kind,
   intent,
   excludeUserId,
+  viewerId = null,
+  scope = "primary",
   take = 48,
   skip = 0,
 }: BrowseArgs) {
   const where: Prisma.ListingWhereInput = {};
   if (kind) where.kind = kind;
   if (excludeUserId) where.userId = { not: excludeUserId };
+  const visibleIds = await getVisibleUserIds(viewerId, scope);
+  if (visibleIds !== null) {
+    where.userId = excludeIdCombine(where.userId, visibleIds);
+  }
   if (intent === "TRADE") where.offerType = { in: ["TRADE_ONLY", "TRADE_OR_CASH"] };
   else if (intent === "CASH") where.offerType = { in: ["CASH_ONLY", "TRADE_OR_CASH"] };
   const gameFilter: GameSlug[] = game && ENABLED_GAMES.includes(game) ? [game] : ENABLED_GAMES;
@@ -177,7 +202,7 @@ export type Match = {
   iWantIds: string[]; // cards B has that A wants (B → A)
 };
 
-export async function findMatches(userId: string): Promise<Match[]> {
+export async function findMatches(userId: string, scope: LgsScope = "primary"): Promise<Match[]> {
   const gameScope = { card: { game: { slug: { in: ENABLED_GAMES } } } };
   const tradeEligible = { offerType: { in: ["TRADE_ONLY", "TRADE_OR_CASH"] as OfferType[] } };
 
@@ -191,12 +216,15 @@ export async function findMatches(userId: string): Promise<Match[]> {
 
   if (myHaveIds.length === 0 || myWantIds.length === 0) return [];
 
+  const visibleIds = await getVisibleUserIds(userId, scope);
+  const scopeFilter = visibleIds !== null ? { userId: { in: visibleIds, not: userId } } : { userId: { not: userId } };
+
   // Users who WANT something I HAVE (trade-eligible only).
   const theyWant = await prisma.listing.findMany({
     where: {
       kind: "WANT",
       cardId: { in: myHaveIds },
-      userId: { not: userId },
+      ...scopeFilter,
       ...gameScope,
       ...tradeEligible,
     },
@@ -208,7 +236,7 @@ export async function findMatches(userId: string): Promise<Match[]> {
     where: {
       kind: "HAVE",
       cardId: { in: myWantIds },
-      userId: { not: userId },
+      ...scopeFilter,
       ...gameScope,
       ...tradeEligible,
     },
@@ -290,6 +318,48 @@ export async function getPendingTradeCount(userId: string): Promise<number> {
     }
   }
   return count;
+}
+
+export async function getLgsList(viewerId: string | null) {
+  const [lgss, myMemberships] = await Promise.all([
+    prisma.lgs.findMany({
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        city: true,
+        _count: { select: { memberships: true } },
+      },
+      orderBy: [{ createdAt: "asc" }],
+    }),
+    viewerId
+      ? prisma.lgsMembership.findMany({
+          where: { userId: viewerId },
+          select: { lgsId: true, isPrimary: true, role: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const membershipByLgs = new Map(myMemberships.map((m) => [m.lgsId, m]));
+  return lgss.map((l) => ({
+    ...l,
+    memberCount: l._count.memberships,
+    myMembership: membershipByLgs.get(l.id) ?? null,
+  }));
+}
+
+export async function getLgsBySlug(slug: string) {
+  return prisma.lgs.findUnique({
+    where: { slug },
+    include: {
+      memberships: {
+        include: {
+          user: { select: { id: true, handle: true, name: true, image: true } },
+        },
+        orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
+      },
+    },
+  });
 }
 
 export async function getMyTrades(userId: string) {
@@ -375,7 +445,10 @@ export type CashMatch = {
  * (from other users) priced at or below my max. Ordered by savings
  * from my max — cheapest first.
  */
-export async function findCashMatches(userId: string): Promise<CashMatch[]> {
+export async function findCashMatches(
+  userId: string,
+  scope: LgsScope = "primary",
+): Promise<CashMatch[]> {
   const myWants = await prisma.listing.findMany({
     where: {
       userId,
@@ -394,13 +467,17 @@ export async function findCashMatches(userId: string): Promise<CashMatch[]> {
     },
   });
 
+  const visibleIds = await getVisibleUserIds(userId, scope);
+  const scopeUserFilter =
+    visibleIds !== null ? { userId: { in: visibleIds, not: userId } } : { userId: { not: userId } };
+
   const results: CashMatch[] = [];
   for (const want of myWants) {
     const sellers = await prisma.listing.findMany({
       where: {
         kind: "HAVE",
         cardId: want.cardId,
-        userId: { not: userId },
+        ...scopeUserFilter,
         priceCents: { not: null, lte: want.priceCents! },
         offerType: { in: ["CASH_ONLY", "TRADE_OR_CASH"] as OfferType[] },
       },
@@ -448,7 +525,11 @@ export async function findCashMatches(userId: string): Promise<CashMatch[]> {
   return results;
 }
 
-export async function getCardWithListings(cardId: string, viewerId?: string) {
+export async function getCardWithListings(
+  cardId: string,
+  viewerId?: string,
+  scope: LgsScope = "primary",
+) {
   const card = await prisma.card.findUnique({
     where: { id: cardId },
     include: {
@@ -464,10 +545,15 @@ export async function getCardWithListings(cardId: string, viewerId?: string) {
   });
   if (!card) return null;
 
+  const visibleIds = await getVisibleUserIds(viewerId ?? null, scope);
   const mine = viewerId ? card.listings.filter((l) => l.userId === viewerId) : [];
   const others = card.listings.filter((l) => (viewerId ? l.userId !== viewerId : true));
-  const sellers = others.filter((l) => l.kind === "HAVE");
-  const buyers = others.filter((l) => l.kind === "WANT");
+  const scoped =
+    visibleIds !== null
+      ? others.filter((l) => visibleIds.includes(l.userId))
+      : others;
+  const sellers = scoped.filter((l) => l.kind === "HAVE");
+  const buyers = scoped.filter((l) => l.kind === "WANT");
 
   return { card, mine, sellers, buyers };
 }
@@ -479,14 +565,22 @@ export async function getCardWithListings(cardId: string, viewerId?: string) {
 export async function getSuggestedPrices(
   cardIds: string[],
   excludeUserId?: string,
+  scope: LgsScope = "primary",
 ): Promise<Map<string, number>> {
   if (cardIds.length === 0) return new Map();
+  const visibleIds = await getVisibleUserIds(excludeUserId ?? null, scope);
+  const userFilter =
+    visibleIds !== null
+      ? { userId: { in: visibleIds, ...(excludeUserId ? { not: excludeUserId } : {}) } }
+      : excludeUserId
+        ? { userId: { not: excludeUserId } }
+        : {};
   const rows = await prisma.listing.findMany({
     where: {
       cardId: { in: cardIds },
       kind: "HAVE",
       priceCents: { not: null },
-      ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
+      ...userFilter,
     },
     select: { cardId: true, priceCents: true },
   });
@@ -522,15 +616,25 @@ export type TraderRow = {
  * enabled games. Sorted by total activity (haves + wants desc), then
  * alphabetical by handle.
  */
-export async function getTraders(): Promise<TraderRow[]> {
+export async function getTraders(
+  viewerId: string | null = null,
+  scope: LgsScope = "primary",
+): Promise<TraderRow[]> {
+  const visibleIds = await getVisibleUserIds(viewerId, scope);
+  const userFilter: Prisma.UserWhereInput = { handle: { not: null } };
+  if (visibleIds !== null) userFilter.id = { in: visibleIds };
+
   const [users, counts] = await Promise.all([
     prisma.user.findMany({
-      where: { handle: { not: null } },
+      where: userFilter,
       select: { id: true, handle: true, name: true, image: true },
     }),
     prisma.listing.groupBy({
       by: ["userId", "kind"],
-      where: { card: { game: { slug: { in: ENABLED_GAMES } } } },
+      where: {
+        card: { game: { slug: { in: ENABLED_GAMES } } },
+        ...(visibleIds !== null ? { userId: { in: visibleIds } } : {}),
+      },
       _count: { _all: true },
     }),
   ]);

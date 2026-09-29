@@ -15,6 +15,7 @@ export function middleware(req: NextRequest) {
     path.startsWith("/me") ||
     path.startsWith("/matches") ||
     path.startsWith("/trades") ||
+    path.startsWith("/lgs") ||
     path === "/onboarding";
 
   if (requiresAuth && !hasSession) {
@@ -25,5 +26,11 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/me/:path*", "/matches/:path*", "/trades/:path*", "/onboarding"],
+  matcher: [
+    "/me/:path*",
+    "/matches/:path*",
+    "/trades/:path*",
+    "/lgs/:path*",
+    "/onboarding",
+  ],
 };

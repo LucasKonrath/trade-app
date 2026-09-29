@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "seed:pokemon": "tsx scripts/seed-pokemon.ts",
     "seed:riftbound": "tsx scripts/scrape-riftbound.ts",
-    "seed:mock-user": "tsx scripts/seed-mock-user.ts"
+    "seed:mock-user": "tsx scripts/seed-mock-user.ts",
+    "seed:lgs": "tsx scripts/seed-lgs.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

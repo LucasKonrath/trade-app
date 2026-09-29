@@ -6,19 +6,28 @@ import { findMatches, findCashMatches, getCardsByIds } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { ProposeTradeButton } from "./propose-button";
 import { ProposeListingButton } from "@/components/propose-listing-button";
+import { ScopeToggle } from "@/components/scope-toggle";
 import { formatBRL } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
+import { parseLgsScope } from "@/lib/lgs";
 
 export const dynamic = "force-dynamic";
 
-export default async function MatchesPage() {
-  const [session, { t }] = await Promise.all([auth(), getT()]);
+type SearchParams = { scope?: string };
+
+export default async function MatchesPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const [session, { t }, params] = await Promise.all([auth(), getT(), searchParams]);
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
+  const scope = parseLgsScope(params.scope);
 
   const [matches, cashMatches] = await Promise.all([
-    findMatches(session.user.id),
-    findCashMatches(session.user.id),
+    findMatches(session.user.id, scope),
+    findCashMatches(session.user.id, scope),
   ]);
 
   const allCardIds = new Set<string>();
@@ -34,6 +43,8 @@ export default async function MatchesPage() {
       <div className="container">
         <h1 className="title is-3">{t("matches.title")}</h1>
         <p className="subtitle is-6 has-text-grey">{t("matches.subtitle")}</p>
+
+        <ScopeToggle pathname="/matches" scope={scope} currentQuery={{}} />
 
         <h2 className="title is-5 mt-5">
           <span className="tag is-info mr-2">{t("matches.cashTagLabel")}</span>

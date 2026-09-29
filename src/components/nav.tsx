@@ -4,10 +4,16 @@ import { NavBurger } from "./nav-burger";
 import { LocaleSwitcher } from "./locale-switcher";
 import { getT } from "@/lib/i18n/server";
 import { getPendingTradeCount } from "@/lib/queries";
+import { getViewerLgsContext } from "@/lib/lgs";
 
 export async function Nav() {
   const [session, { t }] = await Promise.all([auth(), getT()]);
-  const pendingTrades = session?.user ? await getPendingTradeCount(session.user.id) : 0;
+  const [pendingTrades, lgsCtx] = session?.user
+    ? await Promise.all([
+        getPendingTradeCount(session.user.id),
+        getViewerLgsContext(session.user.id),
+      ])
+    : [0, { primary: null, memberships: [] }];
 
   return (
     <nav className="navbar has-shadow brand-navbar" role="navigation" aria-label="main navigation">
@@ -29,6 +35,19 @@ export async function Nav() {
             <Link href="/users" className="navbar-item">
               {t("nav.users")}
             </Link>
+            {session?.user && (
+              <Link href="/lgs" className="navbar-item">
+                {t("lgs.navLabel")}
+                {lgsCtx.primary && (
+                  <span
+                    className="tag is-light is-small ml-2"
+                    style={{ fontSize: "0.65rem" }}
+                  >
+                    {lgsCtx.primary.lgs.name}
+                  </span>
+                )}
+              </Link>
+            )}
             {session?.user && (
               <>
                 <Link href="/matches" className="navbar-item">

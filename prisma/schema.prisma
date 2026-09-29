@@ -19,12 +19,13 @@ model User {
   handle        String?   @unique
   createdAt     DateTime  @default(now())
 
-  accounts        Account[]
-  sessions        Session[]
-  listings        Listing[]
-  requesterTrades Trade[]        @relation("RequesterTrades")
-  responderTrades Trade[]        @relation("ResponderTrades")
-  tradeComments   TradeComment[]
+  accounts         Account[]
+  sessions         Session[]
+  listings         Listing[]
+  requesterTrades  Trade[]         @relation("RequesterTrades")
+  responderTrades  Trade[]         @relation("ResponderTrades")
+  tradeComments    TradeComment[]
+  lgsMemberships   LgsMembership[]
 }
 
 model Account {
@@ -205,6 +206,39 @@ model TradeComment {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tradeId, createdAt])
+}
+
+// ---------- LGS (Local Game Store) ----------
+
+enum LgsRole {
+  OWNER
+  MEMBER
+}
+
+model Lgs {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  city      String?
+  createdAt DateTime @default(now())
+
+  memberships LgsMembership[]
+}
+
+model LgsMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  lgsId     String
+  role      LgsRole  @default(MEMBER)
+  isPrimary Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lgs  Lgs  @relation(fields: [lgsId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lgsId])
+  @@index([lgsId])
+  @@index([userId, isPrimary])
 }
 
 model TradeItem {

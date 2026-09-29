@@ -2,11 +2,22 @@ import Link from "next/link";
 import Image from "next/image";
 import { getTraders } from "@/lib/queries";
 import { getT } from "@/lib/i18n/server";
+import { auth } from "@/auth";
+import { ScopeToggle } from "@/components/scope-toggle";
+import { parseLgsScope } from "@/lib/lgs";
 
 export const dynamic = "force-dynamic";
 
-export default async function UsersPage() {
-  const [traders, { t }] = await Promise.all([getTraders(), getT()]);
+type SearchParams = { scope?: string };
+
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const [session, { t }, params] = await Promise.all([auth(), getT(), searchParams]);
+  const scope = parseLgsScope(params.scope);
+  const traders = await getTraders(session?.user?.id ?? null, scope);
   const activeCount = traders.filter((tr) => tr.haves + tr.wants > 0).length;
 
   return (
@@ -16,6 +27,8 @@ export default async function UsersPage() {
         <p className="subtitle is-6 has-text-grey">
           {t("users.summary", { count: traders.length, active: activeCount })}
         </p>
+
+        {session?.user && <ScopeToggle pathname="/users" scope={scope} currentQuery={{}} />}
 
         {traders.length === 0 ? (
           <div className="notification is-light has-text-centered">{t("users.empty")}</div>
