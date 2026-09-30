@@ -863,6 +863,153 @@ export async function getCommunityStats(viewerId: string | null) {
   return { traders, activeListings, tradesThisWeek };
 }
 
+export type DeliveryTrade = {
+  id: string;
+  updatedAt: Date;
+  cashOwedByMe: number; // positive → I owe them; negative → they owe me
+  iGive: {
+    id: string;
+    quantity: number;
+    card: {
+      id: string;
+      name: string;
+      imageUrl: string | null;
+      orientation: string | null;
+      set: { name: string };
+      game: { slug: string };
+    };
+  }[];
+  iReceive: {
+    id: string;
+    quantity: number;
+    card: {
+      id: string;
+      name: string;
+      imageUrl: string | null;
+      orientation: string | null;
+      set: { name: string };
+      game: { slug: string };
+    };
+  }[];
+};
+
+export type DeliveryGroup = {
+  counterparty: {
+    id: string;
+    handle: string | null;
+    name: string | null;
+    image: string | null;
+  };
+  trades: DeliveryTrade[];
+  totalCardsIGive: number;
+  totalCardsIReceive: number;
+  netCashOwedByMe: number;
+};
+
+/**
+ * All ACCEPTED trades where I'm a participant, grouped by counterparty.
+ * "What do I need to bring to the meetup, and what am I getting back?"
+ *
+ * cashOwedByMe follows a from-my-perspective convention (positive means I
+ * hand over cash, negative means they hand it to me). Canonical storage
+ * (positive = responder pays requester) is converted per-side.
+ */
+export async function getMyPendingDeliveries(userId: string): Promise<DeliveryGroup[]> {
+  const trades = await prisma.trade.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ requesterId: userId }, { responderId: userId }],
+    },
+    include: {
+      requester: { select: { id: true, handle: true, name: true, image: true } },
+      responder: { select: { id: true, handle: true, name: true, image: true } },
+      items: {
+        include: {
+          card: {
+            include: {
+              set: { select: { name: true } },
+              game: { select: { slug: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ updatedAt: "desc" }],
+  });
+
+  const groups = new Map<string, DeliveryGroup>();
+
+  for (const t of trades) {
+    const iAmRequester = t.requesterId === userId;
+    const counterparty = iAmRequester ? t.responder : t.requester;
+    const iGiveDirection = iAmRequester ? "FROM_REQUESTER" : "FROM_RESPONDER";
+
+    const iGive = t.items
+      .filter((i) => i.direction === iGiveDirection)
+      .map((i) => ({
+        id: i.id,
+        quantity: i.quantity,
+        card: {
+          id: i.card.id,
+          name: i.card.name,
+          imageUrl: i.card.imageUrl,
+          orientation: i.card.orientation,
+          set: i.card.set,
+          game: i.card.game,
+        },
+      }));
+    const iReceive = t.items
+      .filter((i) => i.direction !== iGiveDirection)
+      .map((i) => ({
+        id: i.id,
+        quantity: i.quantity,
+        card: {
+          id: i.card.id,
+          name: i.card.name,
+          imageUrl: i.card.imageUrl,
+          orientation: i.card.orientation,
+          set: i.card.set,
+          game: i.card.game,
+        },
+      }));
+
+    // Canonical cashCents: positive = responder pays requester.
+    // Convert to "how much I owe": positive when I hand over cash.
+    let cashOwedByMe = 0;
+    if (t.cashCents) {
+      cashOwedByMe = iAmRequester ? -t.cashCents : t.cashCents;
+    }
+
+    const trade: DeliveryTrade = {
+      id: t.id,
+      updatedAt: t.updatedAt,
+      cashOwedByMe,
+      iGive,
+      iReceive,
+    };
+
+    const entry = groups.get(counterparty.id) ?? {
+      counterparty,
+      trades: [],
+      totalCardsIGive: 0,
+      totalCardsIReceive: 0,
+      netCashOwedByMe: 0,
+    };
+    entry.trades.push(trade);
+    entry.totalCardsIGive += iGive.reduce((s, x) => s + x.quantity, 0);
+    entry.totalCardsIReceive += iReceive.reduce((s, x) => s + x.quantity, 0);
+    entry.netCashOwedByMe += cashOwedByMe;
+    groups.set(counterparty.id, entry);
+  }
+
+  // Sort by most recent trade activity per counterparty.
+  return [...groups.values()].sort((a, b) => {
+    const aLatest = Math.max(...a.trades.map((t) => t.updatedAt.getTime()));
+    const bLatest = Math.max(...b.trades.map((t) => t.updatedAt.getTime()));
+    return bLatest - aLatest;
+  });
+}
+
 export async function getUserGameInterests(userId: string): Promise<GameSlug[]> {
   const rows = await prisma.userGameInterest.findMany({
     where: { userId },
