@@ -25,6 +25,7 @@ model User {
   requesterTrades  Trade[]             @relation("RequesterTrades")
   responderTrades  Trade[]             @relation("ResponderTrades")
   tradeComments    TradeComment[]
+  tradeReadStates  TradeReadState[]
   lgsMemberships   LgsMembership[]
   gameInterests    UserGameInterest[]
 }
@@ -202,13 +203,26 @@ model Trade {
   cashCents             Int?      // + = responder pays requester; - = requester pays responder
   lastProposedById      String?   // whoever sent or countered most recently
 
-  requester User           @relation("RequesterTrades", fields: [requesterId], references: [id], onDelete: Cascade)
-  responder User           @relation("ResponderTrades", fields: [responderId], references: [id], onDelete: Cascade)
-  items     TradeItem[]
-  comments  TradeComment[]
+  requester  User             @relation("RequesterTrades", fields: [requesterId], references: [id], onDelete: Cascade)
+  responder  User             @relation("ResponderTrades", fields: [responderId], references: [id], onDelete: Cascade)
+  items      TradeItem[]
+  comments   TradeComment[]
+  readStates TradeReadState[]
 
   @@index([requesterId, status])
   @@index([responderId, status])
+}
+
+model TradeReadState {
+  userId     String
+  tradeId    String
+  lastReadAt DateTime @default(now()) @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tradeId])
+  @@index([tradeId])
 }
 
 model TradeComment {

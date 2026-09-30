@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getMyTrades } from "@/lib/queries";
+import { getMyTrades, getUnreadCommentCounts } from "@/lib/queries";
 import { getT } from "@/lib/i18n/server";
 import { TradeStatus } from "@prisma/client";
 
@@ -22,6 +22,10 @@ export default async function TradesPage() {
   const me = session.user;
 
   const trades = await getMyTrades(me.id);
+  const unread = await getUnreadCommentCounts(
+    me.id,
+    trades.map((tr) => tr.id),
+  );
   const outgoing = trades.filter((tr) => tr.requesterId === me.id);
   const incoming = trades.filter((tr) => tr.responderId === me.id);
 
@@ -36,6 +40,7 @@ export default async function TradesPage() {
           empty={t("trades.noIncoming")}
           trades={incoming}
           me={me.id}
+          unread={unread}
           t={t}
         />
         <Section
@@ -43,6 +48,7 @@ export default async function TradesPage() {
           empty={t("trades.noOutgoing")}
           trades={outgoing}
           me={me.id}
+          unread={unread}
           t={t}
         />
       </div>
@@ -55,12 +61,14 @@ function Section({
   empty,
   trades,
   me,
+  unread,
   t,
 }: {
   title: string;
   empty: string;
   trades: Awaited<ReturnType<typeof getMyTrades>>;
   me: string;
+  unread: Map<string, number>;
   t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   return (
@@ -114,6 +122,20 @@ function Section({
                       <span className={`tag ${STATUS_TONE[tr.status]}`}>
                         {t(`tradeStatus.${tr.status}`)}
                       </span>
+                      {(() => {
+                        const n = unread.get(tr.id) ?? 0;
+                        if (n === 0) return null;
+                        const label =
+                          n === 1 ? t("trades.unreadOne") : t("trades.unreadMany", { count: n });
+                        return (
+                          <span
+                            className="tag is-primary is-small ml-2"
+                            title={t("trades.unreadTooltip")}
+                          >
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td>{giveCount}</td>
                     <td>{receiveCount}</td>

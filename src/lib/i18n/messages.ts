@@ -235,6 +235,9 @@ export const MESSAGES = {
       updated: "Atualizado",
       noIncoming: "Nenhuma proposta recebida.",
       noOutgoing: "Você ainda não propôs nenhuma troca.",
+      unreadOne: "1 nova",
+      unreadMany: "{count} novas",
+      unreadTooltip: "Mensagens não lidas nessa troca",
     },
     tradeStatus: {
       OPEN: "RASCUNHO",
@@ -591,6 +594,9 @@ export const MESSAGES = {
       updated: "Updated",
       noIncoming: "No incoming trade requests.",
       noOutgoing: "You haven't proposed any trades yet.",
+      unreadOne: "1 new",
+      unreadMany: "{count} new",
+      unreadTooltip: "Unread messages on this trade",
     },
     tradeStatus: {
       OPEN: "OPEN",

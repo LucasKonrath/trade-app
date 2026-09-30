@@ -286,38 +286,99 @@ export async function findMatches(userId: string, scope: LgsScope = "primary"): 
   return matches;
 }
 
+/**
+ * Number of trades that need my attention:
+ * - REQUESTED and I'm not the last proposer (someone sent me an offer / countered)
+ * - ACCEPTED where the other party has confirmed finish but I haven't
+ * - Any trade I participate in with unread comments from someone else
+ */
 export async function getPendingTradeCount(userId: string): Promise<number> {
   const trades = await prisma.trade.findMany({
-    where: {
-      OR: [
-        { requesterId: userId, status: "REQUESTED" },
-        { responderId: userId, status: "REQUESTED" },
-        { requesterId: userId, status: "ACCEPTED" },
-        { responderId: userId, status: "ACCEPTED" },
-      ],
-    },
+    where: { OR: [{ requesterId: userId }, { responderId: userId }] },
     select: {
+      id: true,
       requesterId: true,
       responderId: true,
       status: true,
       lastProposedById: true,
       requesterFinishedAt: true,
       responderFinishedAt: true,
+      readStates: {
+        where: { userId },
+        select: { lastReadAt: true },
+      },
+      comments: {
+        select: { userId: true, createdAt: true },
+      },
     },
   });
 
-  let count = 0;
+  const flagged = new Set<string>();
   for (const t of trades) {
-    if (t.status === "REQUESTED") {
-      if (t.lastProposedById && t.lastProposedById !== userId) count += 1;
-    } else if (t.status === "ACCEPTED") {
+    // Responders shouldn't see OPEN drafts (matches getTradeForUser visibility).
+    if (t.status === "OPEN" && t.responderId === userId && t.requesterId !== userId) {
+      continue;
+    }
+    if (t.status === "REQUESTED" && t.lastProposedById && t.lastProposedById !== userId) {
+      flagged.add(t.id);
+    }
+    if (t.status === "ACCEPTED") {
       const iAmRequester = t.requesterId === userId;
       const myConfirmed = iAmRequester ? t.requesterFinishedAt : t.responderFinishedAt;
       const otherConfirmed = iAmRequester ? t.responderFinishedAt : t.requesterFinishedAt;
-      if (!myConfirmed && otherConfirmed) count += 1;
+      if (!myConfirmed && otherConfirmed) flagged.add(t.id);
+    }
+    const lastRead = t.readStates[0]?.lastReadAt ?? new Date(0);
+    const hasUnread = t.comments.some(
+      (c) => c.userId !== userId && c.createdAt > lastRead,
+    );
+    if (hasUnread) flagged.add(t.id);
+  }
+  return flagged.size;
+}
+
+/**
+ * Number of unread comments (from other participants) per trade, keyed by
+ * trade id. Used to badge rows on /trades.
+ */
+export async function getUnreadCommentCounts(
+  userId: string,
+  tradeIds: string[],
+): Promise<Map<string, number>> {
+  if (tradeIds.length === 0) return new Map();
+  const [comments, readStates] = await Promise.all([
+    prisma.tradeComment.findMany({
+      where: { tradeId: { in: tradeIds }, userId: { not: userId } },
+      select: { tradeId: true, createdAt: true },
+    }),
+    prisma.tradeReadState.findMany({
+      where: { userId, tradeId: { in: tradeIds } },
+      select: { tradeId: true, lastReadAt: true },
+    }),
+  ]);
+
+  const lastReadByTrade = new Map(readStates.map((r) => [r.tradeId, r.lastReadAt]));
+  const counts = new Map<string, number>();
+  for (const c of comments) {
+    const lastRead = lastReadByTrade.get(c.tradeId) ?? new Date(0);
+    if (c.createdAt > lastRead) {
+      counts.set(c.tradeId, (counts.get(c.tradeId) ?? 0) + 1);
     }
   }
-  return count;
+  return counts;
+}
+
+/**
+ * Called from /trades/[id] after we successfully render the trade.
+ * Fire-and-forget via after() so it never blocks the render.
+ */
+export async function markTradeAsRead(userId: string, tradeId: string): Promise<void> {
+  const now = new Date();
+  await prisma.tradeReadState.upsert({
+    where: { userId_tradeId: { userId, tradeId } },
+    update: { lastReadAt: now },
+    create: { userId, tradeId, lastReadAt: now },
+  });
 }
 
 export async function getLgsList(viewerId: string | null) {

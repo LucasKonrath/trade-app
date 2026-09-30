@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/auth";
-import { getTradeForUser } from "@/lib/queries";
+import { getTradeForUser, markTradeAsRead } from "@/lib/queries";
 import { CardTile } from "@/components/card-tile";
 import { TradeActions } from "./trade-actions";
 import { CashEditor } from "./cash-editor";
@@ -32,6 +33,11 @@ export default async function TradePage({
   const { id } = await params;
   const trade = await getTradeForUser(id, session.user.id);
   if (!trade) notFound();
+
+  // Mark this trade as read for the viewer (clears the badge). Fire-and-forget
+  // via after() so it doesn't slow down the render.
+  const viewerId = session.user.id;
+  after(() => markTradeAsRead(viewerId, trade.id));
 
   const iAmRequester = trade.requesterId === session.user.id;
   const other = iAmRequester ? trade.responder : trade.requester;
