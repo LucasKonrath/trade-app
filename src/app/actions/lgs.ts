@@ -143,6 +143,57 @@ export async function leaveLgs(input: { lgsId: string }) {
   revalidatePath("/users");
 }
 
+/**
+ * Delete an LGS. Only an OWNER of that LGS can do it. Before deleting, we
+ * promote another membership to primary for every user whose primary was
+ * this LGS and who has at least one other LGS to fall back to. Everything
+ * else cascades via the schema's onDelete: Cascade.
+ */
+export async function deleteLgs(
+  input: { lgsId: string },
+): Promise<void | { ok: false; error: string }> {
+  const me = await currentUser();
+  const { lgsId } = IdSchema.parse(input);
+
+  const membership = await prisma.lgsMembership.findUnique({
+    where: { userId_lgsId: { userId: me.id, lgsId } },
+  });
+  if (!membership || membership.role !== LgsRole.OWNER) {
+    return { ok: false, error: "Só o dono pode excluir a lojinha." };
+  }
+
+  // Reassign primary before cascade removes memberships.
+  const affectedPrimaryUserIds = (
+    await prisma.lgsMembership.findMany({
+      where: { lgsId, isPrimary: true },
+      select: { userId: true },
+    })
+  ).map((m) => m.userId);
+
+  for (const userId of affectedPrimaryUserIds) {
+    const other = await prisma.lgsMembership.findFirst({
+      where: { userId, lgsId: { not: lgsId } },
+      orderBy: { joinedAt: "asc" },
+    });
+    if (other) {
+      await prisma.lgsMembership.update({
+        where: { id: other.id },
+        data: { isPrimary: true },
+      });
+    }
+  }
+
+  await prisma.lgs.delete({ where: { id: lgsId } });
+
+  revalidatePath("/lgs");
+  revalidatePath("/", "layout");
+  revalidatePath("/browse");
+  revalidatePath("/matches");
+  revalidatePath("/users");
+  revalidatePath("/me/preferences");
+  redirect("/lgs");
+}
+
 export async function setPrimaryLgs(input: { lgsId: string }) {
   const me = await currentUser();
   const { lgsId } = IdSchema.parse(input);

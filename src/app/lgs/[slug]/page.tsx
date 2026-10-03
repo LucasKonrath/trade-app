@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { getLgsBySlug } from "@/lib/queries";
 import { getT } from "@/lib/i18n/server";
 import { LgsRowActions } from "../lgs-row-actions";
+import { DeleteLgsButton } from "./delete-lgs-button";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,27 @@ export default async function LgsDetailPage({
             <MembersGrid members={members} />
           )}
         </div>
+
+        {/* Danger zone — owners only */}
+        {myMembership?.role === "OWNER" && (
+          <div
+            className="box mt-6"
+            style={{
+              borderColor: "hsla(0, 68%, 58%, 0.4)",
+              background: "hsla(0, 68%, 20%, 0.08)",
+            }}
+          >
+            <h2 className="title is-6 mb-2" style={{ color: "hsl(0, 68%, 72%)" }}>
+              {t("lgs.dangerZone")}
+            </h2>
+            <p className="is-size-7 has-text-grey mb-3">{t("lgs.deleteHint")}</p>
+            <DeleteLgsButton
+              lgsId={lgs.id}
+              lgsName={lgs.name}
+              memberCount={lgs.memberships.length}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

@@ -396,6 +396,13 @@ export const MESSAGES = {
       scopePrimary: "Voltar às minhas lojinhas",
       showingAll: "Mostrando de todas as lojinhas.",
       showingMine: "Mostrando das suas lojinhas.",
+      dangerZone: "Zona de perigo",
+      deleteHint:
+        "Excluir a lojinha remove todos os membros dela e não pode ser desfeito. Anúncios e trocas dos membros continuam intactos.",
+      deleteBtn: "Excluir lojinha",
+      deletePrompt:
+        "Para confirmar, digite o nome exato da lojinha ({name}). {count} membros serão afetados.",
+      deleteMismatch: "O nome digitado não bate.",
     },
   },
   en: {
@@ -789,6 +796,13 @@ export const MESSAGES = {
       scopePrimary: "Back to my LGSs",
       showingAll: "Showing across all LGSs.",
       showingMine: "Showing from your LGSs.",
+      dangerZone: "Danger zone",
+      deleteHint:
+        "Deleting the LGS removes all its memberships and can't be undone. Members' listings and trades stay intact.",
+      deleteBtn: "Delete LGS",
+      deletePrompt:
+        "To confirm, type the LGS name exactly ({name}). {count} members will be affected.",
+      deleteMismatch: "Name doesn't match.",
     },
   },
 } as const;
