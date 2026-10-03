@@ -7,9 +7,25 @@ import { ProposeListingButton } from "@/components/propose-listing-button";
 import { ENABLED_GAMES } from "@/lib/config";
 import { formatBRL } from "@/lib/money";
 import { getT } from "@/lib/i18n/server";
+import { getUserTradeStats } from "@/lib/queries";
 import type { ListingKind, OfferType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+function relativeDaysLabel(
+  date: Date,
+  locale: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  const ms = Date.now() - new Date(date).getTime();
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  if (days < 1) return t("profile.today");
+  if (days === 1) return t("profile.yesterday");
+  if (days < 7) return t("profile.daysAgo", { count: days });
+  if (days < 30) return t("profile.weeksAgo", { count: Math.floor(days / 7) });
+  if (days < 365) return t("profile.monthsAgo", { count: Math.floor(days / 30) });
+  return new Date(date).toLocaleDateString(locale, { month: "short", year: "numeric" });
+}
 
 export default async function ProfilePage({
   params,
@@ -17,7 +33,7 @@ export default async function ProfilePage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const [session, { t }] = await Promise.all([auth(), getT()]);
+  const [session, { t, locale }] = await Promise.all([auth(), getT()]);
   const user = await prisma.user.findUnique({
     where: { handle },
     select: {
@@ -25,6 +41,7 @@ export default async function ProfilePage({
       handle: true,
       name: true,
       image: true,
+      createdAt: true,
       listings: {
         where: { card: { game: { slug: { in: ENABLED_GAMES } } } },
         include: {
@@ -44,6 +61,15 @@ export default async function ProfilePage({
   const haves = user.listings.filter((l) => l.kind === "HAVE");
   const wants = user.listings.filter((l) => l.kind === "WANT");
   const canPropose = session?.user && session.user.id !== user.id;
+  const tradeStats = await getUserTradeStats(user.id);
+
+  const joinedLabel = user.createdAt.toLocaleDateString(locale, {
+    month: "long",
+    year: "numeric",
+  });
+  const lastTradeLabel = tradeStats.lastFinishedAt
+    ? relativeDaysLabel(tradeStats.lastFinishedAt, locale, t)
+    : null;
 
   return (
     <section className="section">
@@ -66,6 +92,21 @@ export default async function ProfilePage({
               <p className="subtitle is-6 has-text-grey">
                 {t("profile.summary", { haves: haves.length, wants: wants.length })}
               </p>
+              <div className="tags mt-2" style={{ gap: "0.5rem" }}>
+                <span
+                  className={`tag ${tradeStats.finishedCount > 0 ? "is-success" : "is-light"}`}
+                >
+                  {t("profile.finishedTrades", { count: tradeStats.finishedCount })}
+                </span>
+                {lastTradeLabel && (
+                  <span className="tag is-light">
+                    {t("profile.lastTrade", { when: lastTradeLabel })}
+                  </span>
+                )}
+                <span className="tag is-light">
+                  {t("profile.joined", { date: joinedLabel })}
+                </span>
+              </div>
             </div>
           </div>
         </div>

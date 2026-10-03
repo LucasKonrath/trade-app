@@ -659,7 +659,62 @@ export type TraderRow = {
   image: string | null;
   haves: number;
   wants: number;
+  finishedTrades: number;
 };
+
+/**
+ * Trade history stats for a single user. Shown on their public profile.
+ */
+export async function getUserTradeStats(userId: string): Promise<{
+  finishedCount: number;
+  lastFinishedAt: Date | null;
+}> {
+  const [count, latest] = await Promise.all([
+    prisma.trade.count({
+      where: {
+        status: "FINISHED",
+        OR: [{ requesterId: userId }, { responderId: userId }],
+      },
+    }),
+    prisma.trade.findFirst({
+      where: {
+        status: "FINISHED",
+        OR: [{ requesterId: userId }, { responderId: userId }],
+      },
+      orderBy: { finishedAt: "desc" },
+      select: { finishedAt: true },
+    }),
+  ]);
+  return { finishedCount: count, lastFinishedAt: latest?.finishedAt ?? null };
+}
+
+/**
+ * Finished-trade counts for many users at once. One roundtrip, counted
+ * in-memory because a user can appear on either side.
+ */
+async function getFinishedCountsBatch(userIds: string[]): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  for (const id of userIds) result.set(id, 0);
+  if (userIds.length === 0) return result;
+
+  const trades = await prisma.trade.findMany({
+    where: {
+      status: "FINISHED",
+      OR: [{ requesterId: { in: userIds } }, { responderId: { in: userIds } }],
+    },
+    select: { requesterId: true, responderId: true },
+  });
+
+  for (const t of trades) {
+    if (result.has(t.requesterId)) {
+      result.set(t.requesterId, result.get(t.requesterId)! + 1);
+    }
+    if (result.has(t.responderId)) {
+      result.set(t.responderId, result.get(t.responderId)! + 1);
+    }
+  }
+  return result;
+}
 
 export async function getTraders(
   viewerId: string | null = null,
@@ -685,6 +740,8 @@ export async function getTraders(
     }),
   ]);
 
+  const finishedByUser = await getFinishedCountsBatch(users.map((u) => u.id));
+
   const byUser = new Map<string, { haves: number; wants: number }>();
   for (const c of counts) {
     const entry = byUser.get(c.userId) ?? { haves: 0, wants: 0 };
@@ -702,12 +759,15 @@ export async function getTraders(
       image: u.image,
       haves: c.haves,
       wants: c.wants,
+      finishedTrades: finishedByUser.get(u.id) ?? 0,
     };
   });
 
+  // Rank by activity (listings + finished trades) then alphabetical.
   rows.sort((a, b) => {
-    const totalDiff = b.haves + b.wants - (a.haves + a.wants);
-    if (totalDiff !== 0) return totalDiff;
+    const scoreA = a.haves + a.wants + a.finishedTrades * 2;
+    const scoreB = b.haves + b.wants + b.finishedTrades * 2;
+    if (scoreB !== scoreA) return scoreB - scoreA;
     return a.handle.localeCompare(b.handle);
   });
 

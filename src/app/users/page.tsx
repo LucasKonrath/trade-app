@@ -106,6 +106,14 @@ export default async function UsersPage({
                     >
                       {t("users.wantsLabel", { count: tr.wants })}
                     </span>
+                    {tr.finishedTrades > 0 && (
+                      <span
+                        className="tag is-small is-primary is-light"
+                        title={t("users.finishedTradesTooltip")}
+                      >
+                        {t("users.finishedTradesShort", { count: tr.finishedTrades })}
+                      </span>
+                    )}
                   </div>
                 </Link>
               </div>
