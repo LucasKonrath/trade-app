@@ -40,7 +40,11 @@ export function GameInterestsForm({ current, layout = "block" }: Props) {
     }
     startTransition(async () => {
       try {
-        await setGameInterests({ slugs });
+        const result = await setGameInterests({ slugs });
+        if (result && result.ok === false) {
+          setError(result.error);
+          return;
+        }
         setSavedAt(Date.now());
       } catch (err) {
         setError((err as Error).message);

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { enforceLimit, limiters } from "@/lib/ratelimit";
+import { checkLimit, limiters } from "@/lib/ratelimit";
 import { AVAILABLE_GAMES } from "@/lib/config";
 import { GameSlug } from "@prisma/client";
 
@@ -17,14 +17,17 @@ const Schema = z.object({
  * Replace the current user's game interests with the given set.
  * Requires at least one game — the picker enforces this too.
  */
-export async function setGameInterests(input: { slugs: GameSlug[] }) {
+export async function setGameInterests(
+  input: { slugs: GameSlug[] },
+): Promise<void | { ok: false; error: string }> {
   const session = await auth();
   if (!session?.user) redirect("/signin");
-  await enforceLimit(
+  const limit = await checkLimit(
     limiters.gameInterests,
     session.user.id,
     "Você mudou de jogos muitas vezes.",
   );
+  if (!limit.ok) return limit;
 
   const parsed = Schema.parse(input);
   const requested = parsed.slugs.filter((s) => (AVAILABLE_GAMES as string[]).includes(s));

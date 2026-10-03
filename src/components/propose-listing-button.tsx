@@ -47,12 +47,15 @@ export function ProposeListingButton({
         if (priceCents && (offerType === "CASH_ONLY" || offerType === "TRADE_OR_CASH")) {
           cashCents = kind === "HAVE" ? -priceCents : priceCents;
         }
-        await createTrade({
+        const result = await createTrade({
           responderId: ownerId,
           iGiveIds,
           iReceiveIds,
           cashCents,
         });
+        if (result && result.ok === false) {
+          alert(result.error);
+        }
       } catch (err) {
         if ((err as Error).message !== "NEXT_REDIRECT") {
           alert((err as Error).message);

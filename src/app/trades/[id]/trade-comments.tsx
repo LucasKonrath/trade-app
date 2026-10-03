@@ -37,7 +37,11 @@ export function TradeComments({ tradeId, comments, myUserId }: Props) {
     if (!trimmed) return;
     startTransition(async () => {
       try {
-        await addTradeComment({ tradeId, body: trimmed });
+        const result = await addTradeComment({ tradeId, body: trimmed });
+        if (result && result.ok === false) {
+          setError(result.error);
+          return;
+        }
         setBody("");
       } catch (err) {
         setError((err as Error).message);

@@ -6,10 +6,9 @@ import { Redis } from "@upstash/redis";
  * Redis (free tier covers an LGS-sized community easily).
  *
  * If UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are not set, every
- * limiter is null and enforceLimit() silently allows every call. That way
- * the code can ship and run locally or on preview deploys without any
- * external dependency, and prod enables rate limiting the moment env vars
- * are present.
+ * limiter is null and checkLimit() silently allows every call. That way the
+ * code can ship and run locally or on preview deploys without any external
+ * dependency, and prod enables rate limiting the moment env vars are set.
  */
 
 const redis = (() => {
@@ -42,24 +41,26 @@ export const limiters = {
   gameInterests: makeLimiter(60, "1 h", "rl:games"),
 };
 
+export type LimitResult = { ok: true } | { ok: false; error: string };
+
 /**
- * Throws when the caller has exceeded the limit. No-op when the limiter is
- * null (env vars missing).
+ * Non-throwing rate-limit check. Returns a result object that server actions
+ * can forward to the client; critical for prod because Next.js masks thrown
+ * errors from server actions as generic React errors.
  */
-export async function enforceLimit(
+export async function checkLimit(
   limiter: Ratelimit | null,
   key: string,
-  message = "Muitas requisições. Tente novamente em alguns minutos.",
-): Promise<void> {
-  if (!limiter) return;
+  message: string,
+): Promise<LimitResult> {
+  if (!limiter) return { ok: true };
   const { success, reset } = await limiter.limit(key);
-  if (!success) {
-    const seconds = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
-    const minutes = Math.ceil(seconds / 60);
-    const retryHint =
-      minutes >= 2
-        ? `Tente novamente em ~${minutes} minutos.`
-        : `Tente novamente em ${seconds}s.`;
-    throw new Error(`${message} ${retryHint}`);
-  }
+  if (success) return { ok: true };
+  const seconds = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+  const minutes = Math.ceil(seconds / 60);
+  const retryHint =
+    minutes >= 2
+      ? `Tente novamente em ~${minutes} minutos.`
+      : `Tente novamente em ${seconds}s.`;
+  return { ok: false, error: `${message} ${retryHint}` };
 }

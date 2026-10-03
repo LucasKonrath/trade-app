@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { enforceLimit, limiters } from "@/lib/ratelimit";
+import { checkLimit, limiters } from "@/lib/ratelimit";
 import { LgsRole } from "@prisma/client";
 
 async function currentUser() {
@@ -29,13 +29,16 @@ const CreateSchema = z.object({
   city: z.string().trim().max(60).optional(),
 });
 
-export async function createLgs(input: { name: string; city?: string }) {
+export async function createLgs(
+  input: { name: string; city?: string },
+): Promise<void | { ok: false; error: string }> {
   const me = await currentUser();
-  await enforceLimit(
+  const limit = await checkLimit(
     limiters.createLgs,
     me.id,
     "Você criou muitas lojinhas hoje.",
   );
+  if (!limit.ok) return limit;
   const parsed = CreateSchema.parse(input);
 
   const base = slugify(parsed.name);

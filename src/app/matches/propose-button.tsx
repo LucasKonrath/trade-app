@@ -17,7 +17,10 @@ export function ProposeTradeButton({ responderId, iGiveIds, iReceiveIds }: Props
   const onClick = () => {
     startTransition(async () => {
       try {
-        await createTrade({ responderId, iGiveIds, iReceiveIds });
+        const result = await createTrade({ responderId, iGiveIds, iReceiveIds });
+        if (result && result.ok === false) {
+          alert(result.error);
+        }
       } catch (err) {
         if ((err as Error).message !== "NEXT_REDIRECT") {
           alert((err as Error).message);

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { enforceLimit, limiters } from "@/lib/ratelimit";
+import { checkLimit, limiters } from "@/lib/ratelimit";
 import { ListingKind, CardCondition, OfferType } from "@prisma/client";
 
 const ConditionEnum = z.nativeEnum(CardCondition);
@@ -27,15 +27,18 @@ const UpsertSchema = z
     { message: "Price is required for cash listings", path: ["priceCents"] },
   );
 
-export async function upsertListing(formData: FormData) {
+export async function upsertListing(
+  formData: FormData,
+): Promise<void | { ok: false; error: string }> {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
-  await enforceLimit(
+  const limit = await checkLimit(
     limiters.listing,
     session.user.id,
     "Você alterou muitos anúncios em pouco tempo.",
   );
+  if (!limit.ok) return limit;
 
   const raw = Object.fromEntries(formData);
   const cleaned = {
@@ -99,15 +102,16 @@ export async function addPriceToListing(input: {
   cardId: string;
   kind: ListingKind;
   priceCents: number;
-}) {
+}): Promise<void | { ok: false; error: string }> {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
-  await enforceLimit(
+  const limit = await checkLimit(
     limiters.listing,
     session.user.id,
     "Você alterou muitos anúncios em pouco tempo.",
   );
+  if (!limit.ok) return limit;
 
   const { cardId, kind, priceCents } = PriceSchema.parse(input);
 
@@ -202,15 +206,16 @@ export async function saveListing(input: {
   acceptTrades: boolean;
   acceptCash: boolean;
   quantity?: number;
-}) {
+}): Promise<void | { ok: false; error: string }> {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
-  await enforceLimit(
+  const limit = await checkLimit(
     limiters.listing,
     session.user.id,
     "Você alterou muitos anúncios em pouco tempo.",
   );
+  if (!limit.ok) return limit;
 
   const parsed = SaveListingSchema.parse(input);
 

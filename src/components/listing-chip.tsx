@@ -62,7 +62,7 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
     const qty = Math.max(1, Math.min(999, Number(quantity) || 1));
     startTransition(async () => {
       try {
-        await saveListing({
+        const result = await saveListing({
           cardId,
           kind,
           priceCents: cents,
@@ -70,6 +70,10 @@ export function ListingChip({ cardId, kind, existing, suggestedPriceCents }: Pro
           acceptCash,
           quantity: qty,
         });
+        if (result && result.ok === false) {
+          setError(result.error);
+          return;
+        }
         setOpen(false);
       } catch (err) {
         setError((err as Error).message);

@@ -67,7 +67,11 @@ export function ListingEditor({
         if (cents != null) fd.set("priceCents", String(cents));
       }
       try {
-        await upsertListing(fd);
+        const result = await upsertListing(fd);
+        if (result && result.ok === false) {
+          setError(result.error);
+          return;
+        }
         setOpen(false);
       } catch (err) {
         setError((err as Error).message);

@@ -20,7 +20,10 @@ export function CreateLgsForm() {
     }
     startTransition(async () => {
       try {
-        await createLgs({ name: trimmed, city: city.trim() || undefined });
+        const result = await createLgs({ name: trimmed, city: city.trim() || undefined });
+        if (result && result.ok === false) {
+          setError(result.error);
+        }
       } catch (err) {
         if ((err as Error).message !== "NEXT_REDIRECT") {
           setError((err as Error).message);

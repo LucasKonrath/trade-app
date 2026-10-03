@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { enforceLimit, limiters } from "@/lib/ratelimit";
+import { checkLimit, limiters } from "@/lib/ratelimit";
 import { TradeDirection, TradeStatus } from "@prisma/client";
 
 async function currentUser() {
@@ -37,13 +37,14 @@ export async function createTrade(input: {
   iGiveIds: string[];
   iReceiveIds: string[];
   cashCents?: number;
-}) {
+}): Promise<void | { ok: false; error: string }> {
   const me = await currentUser();
-  await enforceLimit(
+  const limit = await checkLimit(
     limiters.createTrade,
     me.id,
     "Você propôs muitas trocas recentemente.",
   );
+  if (!limit.ok) return limit;
   const parsed = CreateTradeSchema.parse(input);
 
   if (parsed.responderId === me.id) {
@@ -351,13 +352,16 @@ const CommentSchema = z.object({
  * Post a comment on a trade. Only participants can comment; any status is fine
  * (draft, in negotiation, accepted, finished — useful for closing notes).
  */
-export async function addTradeComment(input: { tradeId: string; body: string }) {
+export async function addTradeComment(
+  input: { tradeId: string; body: string },
+): Promise<void | { ok: false; error: string }> {
   const me = await currentUser();
-  await enforceLimit(
+  const limit = await checkLimit(
     limiters.comment,
     me.id,
     "Você mandou muitas mensagens em pouco tempo.",
   );
+  if (!limit.ok) return limit;
   const parsed = CommentSchema.parse(input);
 
   const trade = await prisma.trade.findUnique({ where: { id: parsed.tradeId } });
