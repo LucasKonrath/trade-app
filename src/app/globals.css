@@ -110,6 +110,60 @@ main.page {
   flex: 1;
 }
 
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+.site-footer {
+  padding: 1.25rem 1rem;
+  border-top: 1px solid var(--mul-border);
+  background: hsla(219, 42%, 5%, 0.85);
+  margin-top: 2rem;
+}
+
+.site-footer a {
+  color: var(--mul-text-dim);
+  transition: color var(--mul-motion);
+}
+
+.site-footer a:hover {
+  color: var(--mul-orange-bright);
+}
+
+/* --------------------------------------------------------------------------
+   Policy pages (privacy, terms) — tighten Bulma .content on dark bg
+   -------------------------------------------------------------------------- */
+.content h1,
+.content h2,
+.content h3 {
+  color: var(--mul-text-strong);
+  font-family: var(--mul-font-display);
+  letter-spacing: -0.02em;
+}
+
+.content h1 {
+  margin-top: 0;
+}
+
+.content h2 {
+  margin-top: 1.75rem;
+  font-size: 1.15rem;
+}
+
+.content p,
+.content li {
+  color: var(--mul-text);
+  line-height: 1.7;
+}
+
+.content a {
+  color: var(--mul-orange-bright);
+  text-decoration: underline;
+}
+
+.content ul {
+  padding-left: 1.5rem;
+}
+
 /* Typography hierarchy */
 .title,
 h1,

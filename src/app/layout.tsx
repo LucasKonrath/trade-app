@@ -3,6 +3,7 @@ import { Geist, Space_Grotesk } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { getLocale } from "@/lib/i18n/server";
 import { LocaleProvider } from "@/lib/i18n/client";
 
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <SessionProvider>
             <Nav />
             <main className="page">{children}</main>
+            <Footer />
           </SessionProvider>
         </LocaleProvider>
       </body>

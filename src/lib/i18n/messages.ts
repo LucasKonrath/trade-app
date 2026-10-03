@@ -328,6 +328,11 @@ export const MESSAGES = {
       havesLabel: "{count} TENHO",
       wantsLabel: "{count} QUERO",
     },
+    footer: {
+      privacy: "Privacidade",
+      terms: "Termos",
+      contact: "Contato",
+    },
     comments: {
       title: "Conversa",
       empty: "Nenhuma mensagem ainda. Combine detalhes da troca aqui.",
@@ -705,6 +710,11 @@ export const MESSAGES = {
       empty: "No one's here yet.",
       havesLabel: "{count} HAVE",
       wantsLabel: "{count} WANT",
+    },
+    footer: {
+      privacy: "Privacy",
+      terms: "Terms",
+      contact: "Contact",
     },
     comments: {
       title: "Conversation",
