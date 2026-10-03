@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceLimit, limiters } from "@/lib/ratelimit";
 import { ListingKind, CardCondition, OfferType } from "@prisma/client";
 
 const ConditionEnum = z.nativeEnum(CardCondition);
@@ -30,6 +31,11 @@ export async function upsertListing(formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
+  await enforceLimit(
+    limiters.listing,
+    session.user.id,
+    "Você alterou muitos anúncios em pouco tempo.",
+  );
 
   const raw = Object.fromEntries(formData);
   const cleaned = {
@@ -97,6 +103,11 @@ export async function addPriceToListing(input: {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
+  await enforceLimit(
+    limiters.listing,
+    session.user.id,
+    "Você alterou muitos anúncios em pouco tempo.",
+  );
 
   const { cardId, kind, priceCents } = PriceSchema.parse(input);
 
@@ -195,6 +206,11 @@ export async function saveListing(input: {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   if (!session.user.handle) redirect("/onboarding");
+  await enforceLimit(
+    limiters.listing,
+    session.user.id,
+    "Você alterou muitos anúncios em pouco tempo.",
+  );
 
   const parsed = SaveListingSchema.parse(input);
 

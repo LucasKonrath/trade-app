@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceLimit, limiters } from "@/lib/ratelimit";
 import { LgsRole } from "@prisma/client";
 
 async function currentUser() {
@@ -30,6 +31,11 @@ const CreateSchema = z.object({
 
 export async function createLgs(input: { name: string; city?: string }) {
   const me = await currentUser();
+  await enforceLimit(
+    limiters.createLgs,
+    me.id,
+    "Você criou muitas lojinhas hoje.",
+  );
   const parsed = CreateSchema.parse(input);
 
   const base = slugify(parsed.name);

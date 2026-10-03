@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceLimit, limiters } from "@/lib/ratelimit";
 import { AVAILABLE_GAMES } from "@/lib/config";
 import { GameSlug } from "@prisma/client";
 
@@ -19,6 +20,11 @@ const Schema = z.object({
 export async function setGameInterests(input: { slugs: GameSlug[] }) {
   const session = await auth();
   if (!session?.user) redirect("/signin");
+  await enforceLimit(
+    limiters.gameInterests,
+    session.user.id,
+    "Você mudou de jogos muitas vezes.",
+  );
 
   const parsed = Schema.parse(input);
   const requested = parsed.slugs.filter((s) => (AVAILABLE_GAMES as string[]).includes(s));
